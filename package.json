@@ -1,0 +1,19 @@
+{
+  "name": "doubleheader",
+  "version": "1.0.0",
+  "description": "Find weekends where your favourite artists and teams align",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site - no build step'"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^2.6.0",
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

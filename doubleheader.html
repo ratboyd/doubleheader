@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doubleheader — find your perfect sports + music weekends</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d0d0c;--ink2:#4a4845;--ink3:#9a9690;--paper:#f7f5f0;--card:#fff;--surface:#eeece7;--border:rgba(13,13,12,.09);--border2:rgba(13,13,12,.15);--gold:#c8922a;--gold-lt:#faf3e2;--gold-bd:#e8c97a;--teal:#1a8a6e;--teal-lt:#e4f5ef;--teal-bd:#7dd4bc;--purple:#5b47cc;--purple-lt:#eeecfb;--purple-bd:#b0a7e8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+.nav{position:sticky;top:0;z-index:100;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:54px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:19px;color:#fff;letter-spacing:-.5px}
+.logo em{color:var(--gold);font-style:normal}
+.nav-actions{display:flex;gap:8px}
+.nbtn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.7);transition:all .15s}
+.nbtn:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+.nbtn.gold{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.nbtn.gold:hover{background:#d9a035}
+.app{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 54px)}
+.sidebar{background:var(--card);border-right:1px solid var(--border);overflow-y:auto;max-height:calc(100vh - 54px);position:sticky;top:54px}
+.sb{padding:20px 18px}
+.progress-bar{display:flex;gap:4px;margin-bottom:20px}
+.ps{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .3s}
+.ps.done{background:var(--gold)}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sb-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.sb-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3)}
+.add-row{display:flex;gap:6px;margin-bottom:7px}
+.add-row input{flex:1;height:33px;padding:0 10px;font-family:'DM Sans',sans-serif;font-size:13px;border:1px solid var(--border2);border-radius:6px;background:var(--paper);color:var(--ink);outline:none;transition:border-color .15s}
+.add-row input:focus{border-color:var(--gold)}
+.add-row input::placeholder{color:var(--ink3)}
+.add-row button{height:33px;padding:0 11px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border:none;border-radius:6px;background:var(--ink);color:#fff;cursor:pointer;white-space:nowrap}
+.add-row button:hover{background:var(--ink2)}
+.qa-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px}
+.qa{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--ink2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .12s}
+.qa:hover{background:var(--surface);color:var(--ink)}
+.qa.used{background:var(--surface);color:var(--ink3);cursor:default;text-decoration:line-through}
+.tags{display:flex;flex-wrap:wrap;gap:5px;min-height:12px;margin-bottom:4px}
+.tag{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:500}
+.tag.city{background:var(--gold-lt);color:#7a5518;border:1px solid var(--gold-bd)}
+.tag.artist{background:var(--purple-lt);color:#3b2f99;border:1px solid var(--purple-bd)}
+.tag.team{background:var(--teal-lt);color:#0f5c49;border:1px solid var(--teal-bd)}
+.tag-x{width:13px;height:13px;border-radius:50%;border:none;background:rgba(0,0,0,.12);color:inherit;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+.tag-x:hover{background:rgba(0,0,0,.22)}
+.home-input{width:100%;height:36px;padding:0 12px;font-family:'DM Sans',sans-serif;font-size:13px;border:1px solid var(--gold-bd);border-radius:6px;background:var(--gold-lt);color:var(--ink);outline:none;margin-bottom:5px}
+.home-input:focus{border-color:var(--gold)}
+.ac-wrap{position:relative}
+.ac-drop{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--card);border:1px solid var(--border2);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;display:none;max-height:200px;overflow-y:auto}
+.ac-drop.open{display:block}
+.ac-item{padding:8px 12px;font-size:13px;cursor:pointer;color:var(--ink);display:flex;align-items:center;gap:6px;transition:background .1s}
+.ac-item:hover,.ac-item.foc{background:var(--surface)}
+.ac-item em{font-style:normal;color:var(--gold);font-weight:600}
+.ac-sub{font-size:11px;color:var(--ink3);margin-left:auto;white-space:nowrap}
+.ac-used{opacity:.45;cursor:default}
+.hint{font-size:11px;color:var(--ink3);margin-bottom:8px;line-height:1.4}
+.run-btn{width:100%;padding:11px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.02em;border:none;border-radius:8px;background:var(--gold);color:var(--ink);cursor:pointer;margin-top:6px;transition:background .15s}
+.run-btn:hover{background:#d9a035}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.main{padding:24px 28px}
+.vtabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.vtab{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--ink3);cursor:pointer;letter-spacing:.02em;transition:all .15s;margin-bottom:-1px}
+.vtab:hover{color:var(--ink2)}
+.vtab.active{color:var(--ink);border-bottom-color:var(--gold)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;border-radius:9px;background:var(--gold-lt);color:var(--gold);font-size:10px;font-weight:700;margin-left:5px;padding:0 3px;font-family:'DM Mono',monospace}
+.vp{display:none}
+.vp.active{display:block}
+.empty{text-align:center;padding:70px 40px}
+.empty-icon{width:60px;height:60px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.empty h2{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;margin-bottom:8px}
+.empty p{font-size:13px;color:var(--ink2);line-height:1.65;max-width:360px;margin:0 auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px 13px}
+.stat-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.5px}
+.stat-label{font-size:11px;color:var(--ink3);margin-top:1px}
+.notice{display:flex;gap:10px;align-items:flex-start;background:var(--gold-lt);border:1px solid var(--gold-bd);border-radius:8px;padding:11px 13px;margin-bottom:10px;font-size:13px;color:#7a5518}
+.notice strong{font-weight:500;display:block;margin-bottom:1px}
+.notice span{font-size:11px;opacity:.85}
+.notice.info{background:var(--teal-lt);border-color:var(--teal-bd);color:#0f5c49}
+.results-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.results-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px}
+.results-sub{font-size:12px;color:var(--ink2);margin-top:2px}
+.sort-sel{font-family:'DM Sans',sans-serif;font-size:12px;padding:5px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--card);color:var(--ink2);cursor:pointer;outline:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mcard{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s}
+.mcard:hover{border-color:var(--border2)}
+.mcard.triple{border-top:3px solid var(--teal)}
+.mcard.double{border-top:3px solid var(--purple)}
+.mcard.single{border-top:3px solid #ccc}
+.mcard-head{padding:13px 15px 9px;display:flex;justify-content:space-between;align-items:flex-start}
+.mcard-city{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.3px}
+.mcard-dates{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);margin-top:2px}
+.score-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.score-num.triple{color:var(--teal)}
+.score-num.double{color:var(--purple)}
+.score-num.single{color:var(--ink3)}
+.score-lbl{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;text-align:right}
+.mcard-events{padding:0 15px 13px;display:flex;flex-direction:column;gap:5px}
+.mevent{display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px}
+.mevent.type-artist{background:var(--purple-lt)}
+.mevent.type-team{background:var(--teal-lt)}
+.mevent.type-other{background:var(--surface)}
+.me-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.type-artist .me-dot{background:var(--purple)}
+.type-team .me-dot{background:var(--teal)}
+.me-body{flex:1;min-width:0}
+.me-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.type-artist .me-name{color:#3b2f99}
+.type-team .me-name{color:#0f5c49}
+.me-venue{font-size:10px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.type-artist .me-venue{color:#7060c0}
+.type-team .me-venue{color:#3a8a72}
+.me-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;margin-top:3px}
+.mcard-foot{padding:7px 15px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.flight-info{font-size:11px;color:var(--ink3)}
+.flight-info strong{color:var(--ink2)}
+.tier-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;font-family:'DM Mono',monospace}
+.tier-pill.triple{background:var(--teal-lt);color:var(--teal)}
+.tier-pill.double{background:var(--purple-lt);color:var(--purple)}
+.tier-pill.single{background:var(--surface);color:var(--ink3)}
+.fc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:18px}
+.fc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s}
+.fc:hover{border-color:var(--border2)}
+.fc.sel{border-color:var(--gold);background:var(--gold-lt)}
+.fc.dim{opacity:.45}
+.fc-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:2px}
+.fc-sub{font-size:11px;color:var(--ink3)}
+.fc-sub strong{color:var(--ink2)}
+.sec-div{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:18px 0 10px;display:flex;align-items:center;gap:10px}
+.sec-div::after{content:'';flex:1;height:1px;background:var(--border)}
+.single-col{display:flex;flex-direction:column;gap:10px}
+@media(max-width:860px){.app{grid-template-columns:1fr}.sidebar{position:static;max-height:none}.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">double<em>header</em></div>
+  <div class="nav-actions">
+    <button class="nbtn" onclick="clearAll()">Clear all</button>
+    <button class="nbtn gold" onclick="refresh()">Find matches</button>
+  </div>
+</nav>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb">
+      <div class="progress-bar">
+        <div class="ps" id="ps1"></div>
+        <div class="ps" id="ps2"></div>
+        <div class="ps" id="ps3"></div>
+        <div class="ps" id="ps4"></div>
+      </div>
+
+      <div class="sb-head"><span class="sb-label">Home city</span></div>
+      <input class="home-input" id="homeInput" type="text" placeholder="e.g. Calgary, AB" oninput="refresh()">
+      <div class="hint">Used to show direct-flight connections to your trip cities.</div>
+      <div class="divider"></div>
+
+      <div class="sb-head"><span class="sb-label">Cities I'd travel to</span><span class="sb-count" id="cityCount">0/10</span></div>
+      <div class="ac-wrap">
+        <div class="add-row">
+          <input type="text" id="cityInput" placeholder="Type a city..." autocomplete="off"
+            oninput="acInput('city')" onkeydown="acKey(event,'city')" onfocus="acInput('city')" onblur="acBlur('city')">
+          <button onclick="addItem('city')">Add</button>
+        </div>
+        <div class="ac-drop" id="ac-city"></div>
+      </div>
+      <div class="qa-wrap" id="cityQA"></div>
+      <div class="tags" id="cityTags"></div>
+      <div class="divider"></div>
+
+      <div class="sb-head"><span class="sb-label">Artists I want to see</span><span class="sb-count" id="artistCount">0/10</span></div>
+      <div class="ac-wrap">
+        <div class="add-row">
+          <input type="text" id="artistInput" placeholder="Type an artist..." autocomplete="off"
+            oninput="acInput('artist')" onkeydown="acKey(event,'artist')" onfocus="acInput('artist')" onblur="acBlur('artist')">
+          <button onclick="addItem('artist')">Add</button>
+        </div>
+        <div class="ac-drop" id="ac-artist"></div>
+      </div>
+      <div class="qa-wrap" id="artistQA"></div>
+      <div class="tags" id="artistTags"></div>
+      <div class="divider"></div>
+
+      <div class="sb-head"><span class="sb-label">Sports teams I follow</span><span class="sb-count" id="teamCount">0/10</span></div>
+      <div class="ac-wrap">
+        <div class="add-row">
+          <input type="text" id="teamInput" placeholder="Type a team..." autocomplete="off"
+            oninput="acInput('team')" onkeydown="acKey(event,'team')" onfocus="acInput('team')" onblur="acBlur('team')">
+          <button onclick="addItem('team')">Add</button>
+        </div>
+        <div class="ac-drop" id="ac-team"></div>
+      </div>
+      <div class="qa-wrap" id="teamQA"></div>
+      <div class="tags" id="teamTags"></div>
+      <div class="divider"></div>
+
+      <button class="run-btn" onclick="refresh()">Find my doubleheaders →</button>
+      <div class="hint" style="text-align:center;margin-top:7px">Updates live as you add items.</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="emptyState" class="empty">
+      <div class="empty-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9a9690" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <h2>Your doubleheaders will appear here</h2>
+      <p>Add your home city, cities you'd travel to, artists you want to see, and sports teams you follow. We'll find weekends where it all lines up.</p>
+    </div>
+
+    <div id="resultsState" style="display:none">
+      <div class="stats" id="statsRow"></div>
+      <div id="noticeArea"></div>
+      <div class="vtabs">
+        <button class="vtab active" onclick="switchView('matches',this)">Best matches <span class="badge" id="matchBadge">0</span></button>
+        <button class="vtab" onclick="switchView('bycity',this)">By city</button>
+        <button class="vtab" onclick="switchView('byartist',this)">By artist</button>
+        <button class="vtab" onclick="switchView('byteam',this)">By team</button>
+      </div>
+
+      <div class="vp active" id="vp-matches">
+        <div class="results-header">
+          <div>
+            <div class="results-title" id="matchTitle">Your doubleheaders</div>
+            <div class="results-sub" id="matchSub"></div>
+          </div>
+          <select class="sort-sel" onchange="sortMatches(this.value)">
+            <option value="score">Best overlap first</option>
+            <option value="date">Soonest first</option>
+            <option value="city">City A–Z</option>
+          </select>
+        </div>
+        <div class="grid" id="matchGrid"></div>
+      </div>
+
+      <div class="vp" id="vp-bycity">
+        <div class="sec-div">Your cities</div>
+        <div class="fc-grid" id="cityFCGrid"></div>
+        <div id="byCityResults"></div>
+      </div>
+
+      <div class="vp" id="vp-byartist">
+        <div class="sec-div">Artists you're following</div>
+        <div class="fc-grid" id="artistFCGrid"></div>
+        <div id="byArtistResults"></div>
+      </div>
+
+      <div class="vp" id="vp-byteam">
+        <div class="sec-div">Teams you follow</div>
+        <div class="fc-grid" id="teamFCGrid"></div>
+        <div id="byTeamResults"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var S = {cities:[],artists:[],teams:[],home:''};
+// Map type names to correct plural keys on S
+var KEYS = {city:'cities', artist:'artists', team:'teams'};
+function getArr(type){ return S[KEYS[type]]; }
+
+// Direct flights from Calgary YYC (approx hours)
+var YYC = {'Vancouver':1.2,'Victoria':1.1,'Kelowna':0.8,'Edmonton':0.7,'Saskatoon':1.3,'Regina':1.5,'Winnipeg':2.1,'Toronto':3.8,'Ottawa':4.0,'Montreal':4.2,'Halifax':4.8,'Las Vegas':2.1,'Los Angeles':2.8,'Inglewood':2.8,'Anaheim':2.9,'San Francisco':2.5,'San Jose':2.6,'Phoenix':2.4,'Glendale':2.4,'Seattle':1.5,'Denver':2.3,'Dallas':3.2,'Fort Worth':3.2,'Houston':3.5,'Minneapolis':3.0,'Saint Paul':3.0,'Chicago':3.5,'Nashville':3.8,'Atlanta':4.2,'New York':4.5,'Newark':4.6,'Wantagh':4.7,'Boston':4.8,'Washington':4.6,'Philadelphia':4.7,'Miami':4.8,'Tampa':4.6,'Orlando':4.7,'Salt Lake City':2.0,'Boise':1.8,'Portland':2.0,'Indianapolis':3.4,'Pittsburgh':4.1,'Charlotte':4.3,'Buffalo':4.3,'Detroit':3.8,'Milwaukee':3.5,'Cleveland':3.9,'Kansas City':3.2,'St. Louis':3.3,'New Orleans':4.2,'Austin':3.4,'Waco':3.5,'El Paso':3.0,'Albuquerque':2.8,'Fayetteville':3.8,'Missoula':1.8,'Minot':2.5,'Baton Rouge':4.0,'Birmingham':4.2,'Tuscaloosa':4.1,'Ann Arbor':3.8,'Oxford':4.1,'Greenville':4.3,'Baltimore':4.5,'North Little Rock':3.7,'Gainesville':4.6,'East Hartford':4.7,'Canandaigua':4.3,'Kelowna':0.8,'Calgary':0};
+
+function getFlight(city) {
+  if (!S.home) return null;
+  var h = S.home.toLowerCase();
+  if (!h.includes('calgary') && !h.includes('yyc')) return null;
+  var cl = city.toLowerCase();
+  for (var k in YYC) {
+    if (cl.includes(k.toLowerCase()) || k.toLowerCase().includes(cl)) return YYC[k];
+  }
+  return null;
+}
+
+// ALL EVENTS — real data sourced April 21, 2026
+// TODAY = 2026-04-21 so past events filtered out automatically
+var ALL_EVENTS = [
+  // BRYAN ADAMS — Las Vegas Bare Bones (Jun 3-7)
+  {city:'Las Vegas',date:'2026-06-03',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn Las Vegas',note:'Bare Bones Acoustic'},
+  {city:'Las Vegas',date:'2026-06-04',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn Las Vegas',note:'Bare Bones Acoustic'},
+  {city:'Las Vegas',date:'2026-06-05',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn Las Vegas',note:'Bare Bones Acoustic'},
+  {city:'Las Vegas',date:'2026-06-06',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn Las Vegas',note:'Bare Bones Acoustic'},
+  {city:'Las Vegas',date:'2026-06-07',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn Las Vegas',note:'Bare Bones Acoustic'},
+  // Bryan Adams US Tour (Jul-Aug)
+  {city:'St. Louis',date:'2026-07-24',name:'Bryan Adams',type:'artist',venue:'Enterprise Center',note:'Roll With The Punches Tour'},
+  {city:'Austin',date:'2026-07-28',name:'Bryan Adams',type:'artist',venue:'Moody Center',note:'Roll With The Punches Tour'},
+  {city:'Houston',date:'2026-07-29',name:'Bryan Adams',type:'artist',venue:'Toyota Center',note:'Roll With The Punches Tour'},
+  {city:'New Orleans',date:'2026-07-31',name:'Bryan Adams',type:'artist',venue:'Smoothie King Center',note:'Roll With The Punches Tour'},
+  {city:'North Little Rock',date:'2026-08-01',name:'Bryan Adams',type:'artist',venue:'Simmons Bank Arena',note:'Roll With The Punches Tour'},
+  {city:'Greenville',date:'2026-08-04',name:'Bryan Adams',type:'artist',venue:'Bon Secours Wellness Arena',note:'Roll With The Punches Tour'},
+  {city:'Orlando',date:'2026-08-05',name:'Bryan Adams',type:'artist',venue:'Kia Center',note:'Roll With The Punches Tour'},
+  {city:'Charlotte',date:'2026-08-08',name:'Bryan Adams',type:'artist',venue:'Spectrum Center',note:'Roll With The Punches Tour'},
+  {city:'Baltimore',date:'2026-08-09',name:'Bryan Adams',type:'artist',venue:'CFG Bank Arena',note:'Roll With The Punches Tour'},
+  {city:'Buffalo',date:'2026-08-14',name:'Bryan Adams',type:'artist',venue:'KeyBank Center',note:'Roll With The Punches Tour'},
+  {city:'Detroit',date:'2026-08-15',name:'Bryan Adams',type:'artist',venue:'Little Caesars Arena',note:'Roll With The Punches Tour'},
+  {city:'Milwaukee',date:'2026-08-16',name:'Bryan Adams',type:'artist',venue:'Fiserv Forum',note:'Roll With The Punches Tour'},
+  // Bryan Adams Canada (Sep-Oct)
+  {city:'Vancouver',date:'2026-09-12',name:'Bryan Adams',type:'artist',venue:'Rogers Arena',note:'Roll With The Punches Tour'},
+  {city:'Kelowna',date:'2026-09-24',name:'Bryan Adams',type:'artist',venue:'Prospera Place',note:'Roll With The Punches Tour'},
+  {city:'Calgary',date:'2026-09-26',name:'Bryan Adams',type:'artist',venue:'Scotiabank Saddledome',note:'Roll With The Punches Tour'},
+  {city:'Edmonton',date:'2026-09-27',name:'Bryan Adams',type:'artist',venue:'Rogers Place',note:'Roll With The Punches Tour'},
+  {city:'Regina',date:'2026-09-28',name:'Bryan Adams',type:'artist',venue:'Brandt Centre',note:'Roll With The Punches Tour'},
+  {city:'Winnipeg',date:'2026-09-29',name:'Bryan Adams',type:'artist',venue:'Canada Life Centre',note:'Roll With The Punches Tour'},
+  {city:'Toronto',date:'2026-10-03',name:'Bryan Adams',type:'artist',venue:'Scotiabank Arena',note:'Roll With The Punches Tour'},
+  {city:'Ottawa',date:'2026-10-04',name:'Bryan Adams',type:'artist',venue:'Canadian Tire Centre',note:'Roll With The Punches Tour'},
+  {city:'Montreal',date:'2026-10-08',name:'Bryan Adams',type:'artist',venue:'Bell Centre',note:'Roll With The Punches Tour'},
+
+  // MORGAN WALLEN — Still The Problem Tour (stadium)
+  {city:'Las Vegas',date:'2026-05-01',name:'Morgan Wallen',type:'artist',venue:'Allegiant Stadium',note:'Still The Problem Tour'},
+  {city:'Las Vegas',date:'2026-05-02',name:'Morgan Wallen',type:'artist',venue:'Allegiant Stadium',note:'Still The Problem Tour'},
+  {city:'Indianapolis',date:'2026-05-08',name:'Morgan Wallen',type:'artist',venue:'Lucas Oil Stadium',note:'Still The Problem Tour'},
+  {city:'Indianapolis',date:'2026-05-09',name:'Morgan Wallen',type:'artist',venue:'Lucas Oil Stadium',note:'Still The Problem Tour'},
+  {city:'Gainesville',date:'2026-05-15',name:'Morgan Wallen',type:'artist',venue:'Ben Hill Griffin Stadium',note:'Still The Problem Tour'},
+  {city:'Gainesville',date:'2026-05-16',name:'Morgan Wallen',type:'artist',venue:'Ben Hill Griffin Stadium',note:'Still The Problem Tour'},
+  {city:'Denver',date:'2026-05-29',name:'Morgan Wallen',type:'artist',venue:'Empower Field at Mile High',note:'Still The Problem Tour'},
+  {city:'Denver',date:'2026-05-30',name:'Morgan Wallen',type:'artist',venue:'Empower Field at Mile High',note:'Still The Problem Tour'},
+  {city:'Pittsburgh',date:'2026-06-05',name:'Morgan Wallen',type:'artist',venue:'Acrisure Stadium',note:'Still The Problem Tour'},
+  {city:'Pittsburgh',date:'2026-06-06',name:'Morgan Wallen',type:'artist',venue:'Acrisure Stadium',note:'Still The Problem Tour'},
+  {city:'Chicago',date:'2026-06-19',name:'Morgan Wallen',type:'artist',venue:'Soldier Field',note:'Still The Problem Tour'},
+  {city:'Chicago',date:'2026-06-20',name:'Morgan Wallen',type:'artist',venue:'Soldier Field',note:'Still The Problem Tour'},
+  {city:'Ann Arbor',date:'2026-07-17',name:'Morgan Wallen',type:'artist',venue:'Michigan Stadium',note:'Still The Problem Tour'},
+  {city:'Ann Arbor',date:'2026-07-18',name:'Morgan Wallen',type:'artist',venue:'Michigan Stadium',note:'Still The Problem Tour'},
+  {city:'Nashville',date:'2026-07-25',name:'Morgan Wallen',type:'artist',venue:'Nissan Stadium',note:'Still The Problem Tour'},
+  {city:'Nashville',date:'2026-07-26',name:'Morgan Wallen',type:'artist',venue:'Nissan Stadium',note:'Still The Problem Tour'},
+  {city:'Philadelphia',date:'2026-08-01',name:'Morgan Wallen',type:'artist',venue:'Lincoln Financial Field',note:'Still The Problem Tour'},
+
+  // POST MALONE — Big Ass Stadium Tour Part 2
+  {city:'El Paso',date:'2026-05-13',name:'Post Malone',type:'artist',venue:'Sun Bowl Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Waco',date:'2026-05-19',name:'Post Malone',type:'artist',venue:'McLane Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Baton Rouge',date:'2026-05-23',name:'Post Malone',type:'artist',venue:'Tiger Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Birmingham',date:'2026-05-26',name:'Post Malone',type:'artist',venue:'Protective Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Tampa',date:'2026-05-29',name:'Post Malone',type:'artist',venue:'Raymond James Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Charlotte',date:'2026-06-09',name:'Post Malone',type:'artist',venue:'Bank of America Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Indianapolis',date:'2026-06-12',name:'Post Malone',type:'artist',venue:'Lucas Oil Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Toronto',date:'2026-06-16',name:'Post Malone',type:'artist',venue:'Rogers Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'East Hartford',date:'2026-06-22',name:'Post Malone',type:'artist',venue:'Pratt & Whitney Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Cleveland',date:'2026-06-25',name:'Post Malone',type:'artist',venue:'Huntington Bank Field',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Nashville',date:'2026-06-30',name:'Post Malone',type:'artist',venue:'Nissan Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Fayetteville',date:'2026-07-11',name:'Post Malone',type:'artist',venue:'Reynolds Razorback Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Kansas City',date:'2026-07-15',name:'Post Malone',type:'artist',venue:'Kauffman Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Missoula',date:'2026-07-21',name:'Post Malone',type:'artist',venue:'Washington-Grizzly Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Edmonton',date:'2026-07-24',name:'Post Malone',type:'artist',venue:'Commonwealth Stadium',note:'Big Ass Stadium Tour Pt.2'},
+  {city:'Salt Lake City',date:'2026-07-28',name:'Post Malone',type:'artist',venue:'Rice-Eccles Stadium',note:'Big Ass Stadium Tour Pt.2'},
+
+  // ZACH TOP — Cold Beer & Country Music Tour 2026
+  {city:'Nashville',date:'2026-06-06',name:'Zach Top',type:'artist',venue:'Nissan Stadium',note:'CMA Fest'},
+  {city:'Orange Beach',date:'2026-06-12',name:'Zach Top',type:'artist',venue:'The Wharf Amphitheater',note:'Cold Beer & Country Music Tour'},
+  {city:'Columbia',date:'2026-06-20',name:'Zach Top',type:'artist',venue:'Merriweather Post Pavilion',note:'Cold Beer & Country Music Tour'},
+  {city:'Salt Lake City',date:'2026-07-09',name:'Zach Top',type:'artist',venue:'Utah First Credit Union Amphitheatre',note:'Cold Beer & Country Music Tour'},
+  {city:'Boise',date:'2026-07-10',name:'Zach Top',type:'artist',venue:'ExtraMile Arena',note:'Cold Beer & Country Music Tour'},
+  {city:'Saskatoon',date:'2026-07-15',name:'Zach Top',type:'artist',venue:'SaskTel Centre',note:'Cold Beer & Country Music Tour'},
+  {city:'Edmonton',date:'2026-07-16',name:'Zach Top',type:'artist',venue:'Rogers Place',note:'Cold Beer & Country Music Tour'},
+  {city:'Minot',date:'2026-07-23',name:'Zach Top',type:'artist',venue:'North Dakota State Fair',note:'Cold Beer & Country Music Tour'},
+  {city:'Toronto',date:'2026-08-06',name:'Zach Top',type:'artist',venue:'Rogers Stadium',note:'Cold Beer & Country Music Tour'},
+  {city:'Ottawa',date:'2026-08-07',name:'Zach Top',type:'artist',venue:'Canadian Tire Centre',note:'Cold Beer & Country Music Tour'},
+  {city:'Canandaigua',date:'2026-08-08',name:'Zach Top',type:'artist',venue:'CMAC',note:'Cold Beer & Country Music Tour'},
+  {city:'Wantagh',date:'2026-08-13',name:'Zach Top',type:'artist',venue:'Jones Beach Theater',note:'Cold Beer & Country Music Tour'},
+  {city:'Pittsburgh',date:'2026-08-20',name:'Zach Top',type:'artist',venue:'PPG Paints Arena',note:'Cold Beer & Country Music Tour'},
+  {city:'Pittsburgh',date:'2026-08-21',name:'Zach Top',type:'artist',venue:'PPG Paints Arena',note:'Cold Beer & Country Music Tour'},
+
+  // NHL PLAYOFFS 2026 — Round 1 (started Apr 18, future games from Apr 21)
+  // Calgary Flames: did NOT make playoffs
+  // EAST: Boston Bruins (1WC) vs Buffalo Sabres (1A) — series ongoing
+  {city:'Boston',date:'2026-04-21',name:'Boston Bruins',type:'team',venue:'TD Garden',note:'NHL Playoffs R1 G2 vs Buffalo'},
+  {city:'Buffalo',date:'2026-04-23',name:'Buffalo Sabres',type:'team',venue:'KeyBank Center',note:'NHL Playoffs R1 G3 vs Boston'},
+  {city:'Buffalo',date:'2026-04-26',name:'Buffalo Sabres',type:'team',venue:'KeyBank Center',note:'NHL Playoffs R1 G4 vs Boston'},
+  {city:'Boston',date:'2026-04-28',name:'Boston Bruins',type:'team',venue:'TD Garden',note:'NHL Playoffs R1 G5 vs Buffalo (if needed)'},
+  {city:'Buffalo',date:'2026-04-30',name:'Buffalo Sabres',type:'team',venue:'KeyBank Center',note:'NHL Playoffs R1 G6 vs Boston (if needed)'},
+  {city:'Boston',date:'2026-05-02',name:'Boston Bruins',type:'team',venue:'TD Garden',note:'NHL Playoffs R1 G7 vs Buffalo (if needed)'},
+  // EAST: Montreal Canadiens (3A) vs Tampa Bay Lightning (2A)
+  {city:'Tampa',date:'2026-04-21',name:'Tampa Bay Lightning',type:'team',venue:'Amalie Arena',note:'NHL Playoffs R1 G2 vs Montreal'},
+  {city:'Montreal',date:'2026-04-24',name:'Montreal Canadiens',type:'team',venue:'Bell Centre',note:'NHL Playoffs R1 G3 vs Tampa'},
+  {city:'Montreal',date:'2026-04-26',name:'Montreal Canadiens',type:'team',venue:'Bell Centre',note:'NHL Playoffs R1 G4 vs Tampa'},
+  {city:'Tampa',date:'2026-04-28',name:'Tampa Bay Lightning',type:'team',venue:'Amalie Arena',note:'NHL Playoffs R1 G5 vs Montreal (if needed)'},
+  {city:'Montreal',date:'2026-05-01',name:'Montreal Canadiens',type:'team',venue:'Bell Centre',note:'NHL Playoffs R1 G6 vs Tampa (if needed)'},
+  {city:'Tampa',date:'2026-05-03',name:'Tampa Bay Lightning',type:'team',venue:'Amalie Arena',note:'NHL Playoffs R1 G7 vs Montreal (if needed)'},
+  // EAST: Ottawa Senators (2WC) vs Carolina Hurricanes (1M)
+  {city:'Carolina',date:'2026-04-22',name:'Carolina Hurricanes',type:'team',venue:'PNC Arena',note:'NHL Playoffs R1 G2 vs Ottawa'},
+  {city:'Ottawa',date:'2026-04-24',name:'Ottawa Senators',type:'team',venue:'Canadian Tire Centre',note:'NHL Playoffs R1 G3 vs Carolina'},
+  {city:'Ottawa',date:'2026-04-25',name:'Ottawa Senators',type:'team',venue:'Canadian Tire Centre',note:'NHL Playoffs R1 G4 vs Carolina'},
+  {city:'Carolina',date:'2026-04-27',name:'Carolina Hurricanes',type:'team',venue:'PNC Arena',note:'NHL Playoffs R1 G5 vs Ottawa (if needed)'},
+  {city:'Ottawa',date:'2026-04-30',name:'Ottawa Senators',type:'team',venue:'Canadian Tire Centre',note:'NHL Playoffs R1 G6 vs Carolina (if needed)'},
+  // EAST: Pittsburgh Penguins vs Philadelphia Flyers
+  {city:'Pittsburgh',date:'2026-04-22',name:'Pittsburgh Penguins',type:'team',venue:'PPG Paints Arena',note:'NHL Playoffs R1 G2 vs Philadelphia'},
+  {city:'Philadelphia',date:'2026-04-25',name:'Philadelphia Flyers',type:'team',venue:'Wells Fargo Center',note:'NHL Playoffs R1 G3 vs Pittsburgh'},
+  {city:'Philadelphia',date:'2026-04-27',name:'Philadelphia Flyers',type:'team',venue:'Wells Fargo Center',note:'NHL Playoffs R1 G4 vs Pittsburgh'},
+  {city:'Pittsburgh',date:'2026-04-29',name:'Pittsburgh Penguins',type:'team',venue:'PPG Paints Arena',note:'NHL Playoffs R1 G5 vs Philadelphia (if needed)'},
+  {city:'Philadelphia',date:'2026-05-01',name:'Philadelphia Flyers',type:'team',venue:'Wells Fargo Center',note:'NHL Playoffs R1 G6 vs Pittsburgh (if needed)'},
+  {city:'Pittsburgh',date:'2026-05-03',name:'Pittsburgh Penguins',type:'team',venue:'PPG Paints Arena',note:'NHL Playoffs R1 G7 vs Philadelphia (if needed)'},
+  // WEST: Colorado Avalanche vs LA Kings
+  {city:'Denver',date:'2026-04-21',name:'Colorado Avalanche',type:'team',venue:'Ball Arena',note:'NHL Playoffs R1 G2 vs LA Kings'},
+  {city:'Los Angeles',date:'2026-04-23',name:'Los Angeles Kings',type:'team',venue:'Crypto.com Arena',note:'NHL Playoffs R1 G3 vs Colorado'},
+  {city:'Los Angeles',date:'2026-04-26',name:'Los Angeles Kings',type:'team',venue:'Crypto.com Arena',note:'NHL Playoffs R1 G4 vs Colorado'},
+  {city:'Denver',date:'2026-04-28',name:'Colorado Avalanche',type:'team',venue:'Ball Arena',note:'NHL Playoffs R1 G5 vs LA Kings (if needed)'},
+  {city:'Los Angeles',date:'2026-04-30',name:'Los Angeles Kings',type:'team',venue:'Crypto.com Arena',note:'NHL Playoffs R1 G6 vs Colorado (if needed)'},
+  {city:'Denver',date:'2026-05-02',name:'Colorado Avalanche',type:'team',venue:'Ball Arena',note:'NHL Playoffs R1 G7 vs LA Kings (if needed)'},
+  // WEST: Dallas Stars vs Minnesota Wild
+  {city:'Dallas',date:'2026-04-22',name:'Dallas Stars',type:'team',venue:'American Airlines Center',note:'NHL Playoffs R1 G2 vs Minnesota'},
+  {city:'Minneapolis',date:'2026-04-25',name:'Minnesota Wild',type:'team',venue:'Xcel Energy Center',note:'NHL Playoffs R1 G3 vs Dallas'},
+  {city:'Minneapolis',date:'2026-04-26',name:'Minnesota Wild',type:'team',venue:'Xcel Energy Center',note:'NHL Playoffs R1 G4 vs Dallas'},
+  {city:'Dallas',date:'2026-04-28',name:'Dallas Stars',type:'team',venue:'American Airlines Center',note:'NHL Playoffs R1 G5 vs Minnesota (if needed)'},
+  {city:'Minneapolis',date:'2026-05-01',name:'Minnesota Wild',type:'team',venue:'Xcel Energy Center',note:'NHL Playoffs R1 G6 vs Dallas (if needed)'},
+  {city:'Dallas',date:'2026-05-03',name:'Dallas Stars',type:'team',venue:'American Airlines Center',note:'NHL Playoffs R1 G7 vs Minnesota (if needed)'},
+  // WEST: Vegas Golden Knights vs Utah Hockey Club
+  {city:'Las Vegas',date:'2026-04-21',name:'Vegas Golden Knights',type:'team',venue:'T-Mobile Arena',note:'NHL Playoffs R1 G2 vs Utah'},
+  {city:'Salt Lake City',date:'2026-04-24',name:'Utah Hockey Club',type:'team',venue:'Delta Center',note:'NHL Playoffs R1 G3 vs Vegas'},
+  {city:'Salt Lake City',date:'2026-04-25',name:'Utah Hockey Club',type:'team',venue:'Delta Center',note:'NHL Playoffs R1 G4 vs Vegas'},
+  {city:'Las Vegas',date:'2026-04-27',name:'Vegas Golden Knights',type:'team',venue:'T-Mobile Arena',note:'NHL Playoffs R1 G5 vs Utah (if needed)'},
+  {city:'Salt Lake City',date:'2026-04-30',name:'Utah Hockey Club',type:'team',venue:'Delta Center',note:'NHL Playoffs R1 G6 vs Vegas (if needed)'},
+  {city:'Las Vegas',date:'2026-05-02',name:'Vegas Golden Knights',type:'team',venue:'T-Mobile Arena',note:'NHL Playoffs R1 G7 vs Utah (if needed)'},
+  // WEST: Edmonton Oilers vs Anaheim Ducks
+  {city:'Edmonton',date:'2026-04-22',name:'Edmonton Oilers',type:'team',venue:'Rogers Place',note:'NHL Playoffs R1 G2 vs Anaheim'},
+  {city:'Anaheim',date:'2026-04-24',name:'Anaheim Ducks',type:'team',venue:'Honda Center',note:'NHL Playoffs R1 G3 vs Edmonton'},
+  {city:'Anaheim',date:'2026-04-25',name:'Anaheim Ducks',type:'team',venue:'Honda Center',note:'NHL Playoffs R1 G4 vs Edmonton'},
+  {city:'Edmonton',date:'2026-04-27',name:'Edmonton Oilers',type:'team',venue:'Rogers Place',note:'NHL Playoffs R1 G5 vs Anaheim (if needed)'},
+  {city:'Anaheim',date:'2026-04-30',name:'Anaheim Ducks',type:'team',venue:'Honda Center',note:'NHL Playoffs R1 G6 vs Edmonton (if needed)'},
+  {city:'Edmonton',date:'2026-05-02',name:'Edmonton Oilers',type:'team',venue:'Rogers Place',note:'NHL Playoffs R1 G7 vs Anaheim (if needed)'},
+];
+
+// Filter: only future events from today Apr 21 2026
+var TODAY = new Date('2026-04-21T00:00:00');
+var FUTURE = ALL_EVENTS.filter(function(e){ return new Date(e.date+'T12:00:00') >= TODAY; });
+
+// Artist notes for ones with no NA dates
+var NO_NA = {
+  'lady gaga':'The Mayhem Ball ended April 13, 2026 — all North America dates have passed.',
+  'the weeknd':'After Hours til Dawn NA leg finished September 2025. 2026 dates are Latin America & Europe only.',
+  'coldplay':'Music of the Spheres North America tour was summer 2025 — no 2026 NA dates announced.',
+  'u2':'No 2026 North America tour currently announced.',
+  'pearl jam':'No 2026 North America tour currently announced.'
+};
+
+// ── AUTOCOMPLETE DATASETS ──────────────────────────────────────────────────────
+// Cities: all North American cities with direct WestJet/Air Canada service from YYC
+// plus all cities that appear in event data
+var ALL_CITIES = [
+  'Calgary','Edmonton','Vancouver','Victoria','Kelowna','Kamloops','Saskatoon','Regina',
+  'Winnipeg','Thunder Bay','Sudbury','Toronto','Ottawa','Montreal','Quebec City','Halifax',
+  'Moncton','Saint John','Charlottetown','Fredericton','Hamilton','London','Windsor','Kingston',
+  'Las Vegas','Los Angeles','San Francisco','San Jose','Seattle','Portland','Phoenix','Tucson',
+  'Denver','Salt Lake City','Boise','Missoula','Albuquerque','El Paso','Dallas','Fort Worth',
+  'Houston','Austin','San Antonio','Minneapolis','Saint Paul','Chicago','Milwaukee','Indianapolis',
+  'Detroit','Cleveland','Columbus','Pittsburgh','Philadelphia','New York','Newark','Buffalo',
+  'Boston','Providence','Hartford','East Hartford','Washington','Baltimore','Charlotte',
+  'Raleigh','Nashville','Memphis','Atlanta','Orlando','Tampa','Miami','New Orleans',
+  'Kansas City','St. Louis','Oklahoma City','Tulsa','Omaha','Des Moines','Fayetteville',
+  'Baton Rouge','Birmingham','Tuscaloosa','Greenville','Myrtle Beach','Savannah',
+  'Jacksonville','Gainesville','Ann Arbor','Grand Rapids','Cincinnati','Louisville',
+  'Anaheim','San Diego','Oakland','Sacramento','Inglewood','Glendale','Tempe',
+  'Waco','Wichita','North Little Rock','Canandaigua','Wantagh','Minot','Cheyenne',
+  'Bonner Springs','Columbia','Orange Beach','Oxford','Missoula','Spokane','Bozeman',
+  'Saskatoon'
+];
+
+// All 32 NHL teams + all 30 NBA teams + all 32 NFL teams + all 30 MLB teams
+var ALL_TEAMS = [
+  // NHL (32)
+  'Calgary Flames','Edmonton Oilers','Vancouver Canucks','Winnipeg Jets',
+  'Toronto Maple Leafs','Ottawa Senators','Montreal Canadiens','Buffalo Sabres',
+  'Boston Bruins','Detroit Red Wings','Columbus Blue Jackets','Pittsburgh Penguins',
+  'Philadelphia Flyers','New Jersey Devils','New York Rangers','New York Islanders',
+  'Washington Capitals','Carolina Hurricanes','Tampa Bay Lightning','Florida Panthers',
+  'Nashville Predators','St. Louis Blues','Chicago Blackhawks','Minnesota Wild',
+  'Dallas Stars','Colorado Avalanche','Utah Hockey Club','Vegas Golden Knights',
+  'Arizona Coyotes','Anaheim Ducks','Los Angeles Kings','Seattle Kraken','San Jose Sharks',
+  // NBA (30)
+  'Toronto Raptors','Boston Celtics','Philadelphia 76ers','Brooklyn Nets','New York Knicks',
+  'Milwaukee Bucks','Cleveland Cavaliers','Indiana Pacers','Chicago Bulls','Detroit Pistons',
+  'Atlanta Hawks','Miami Heat','Charlotte Hornets','Orlando Magic','Washington Wizards',
+  'Oklahoma City Thunder','Denver Nuggets','Minnesota Timberwolves','Utah Jazz','Portland Trail Blazers',
+  'Golden State Warriors','LA Clippers','Los Angeles Lakers','Phoenix Suns','Sacramento Kings',
+  'Dallas Mavericks','Memphis Grizzlies','New Orleans Pelicans','San Antonio Spurs','Houston Rockets',
+  // NFL (32)
+  'Kansas City Chiefs','Buffalo Bills','Baltimore Ravens','Miami Dolphins','Cincinnati Bengals',
+  'Pittsburgh Steelers','Cleveland Browns','New England Patriots','New York Jets','New York Giants',
+  'Philadelphia Eagles','Dallas Cowboys','Washington Commanders','Chicago Bears','Detroit Lions',
+  'Green Bay Packers','Minnesota Vikings','Los Angeles Rams','San Francisco 49ers','Seattle Seahawks',
+  'Arizona Cardinals','Las Vegas Raiders','Denver Broncos','Los Angeles Chargers','Indianapolis Colts',
+  'Jacksonville Jaguars','Tennessee Titans','Houston Texans','New Orleans Saints','Atlanta Falcons',
+  'Carolina Panthers','Tampa Bay Buccaneers',
+  // MLB (30)
+  'Toronto Blue Jays','Boston Red Sox','New York Yankees','New York Mets','Baltimore Orioles',
+  'Tampa Bay Rays','Chicago White Sox','Chicago Cubs','Cleveland Guardians','Detroit Tigers',
+  'Kansas City Royals','Minnesota Twins','Milwaukee Brewers','Cincinnati Reds','Pittsburgh Pirates',
+  'Los Angeles Dodgers','San Francisco Giants','San Diego Padres','Colorado Rockies','Arizona Diamondbacks',
+  'Seattle Mariners','Oakland Athletics','Houston Astros','Texas Rangers','Los Angeles Angels',
+  'Atlanta Braves','Miami Marlins','Washington Nationals','Philadelphia Phillies','St. Louis Cardinals'
+];
+
+// Artists: top touring artists with 2026 activity or strong fan demand
+// Includes your 9 + broad coverage of major touring acts
+var ALL_ARTISTS = [
+  // Your 9
+  'Bryan Adams','Lady Gaga','Coldplay','Post Malone','U2','Pearl Jam','Zach Top','Morgan Wallen','The Weeknd',
+  // Country
+  'Taylor Swift','Luke Combs','Chris Stapleton','Kenny Chesney','Jason Aldean','Garth Brooks',
+  'Carrie Underwood','Blake Shelton','Tim McGraw','Keith Urban','Brad Paisley','Alan Jackson',
+  'Toby Keith','Dierks Bentley','Eric Church','Zac Brown Band','Miranda Lambert','Kacey Musgraves',
+  'Lainey Wilson','Tyler Hubbard','Dan + Shay','Florida Georgia Line','Old Dominion','Thomas Rhett',
+  'Cole Swindell','Luke Bryan','Jake Owen','Jon Pardi','Cody Johnson','Jelly Roll','Wallen & Friends',
+  'Hardy','Ella Langley','Gavin Adcock','Hozier',
+  // Pop / mainstream
+  'Billie Eilish','Ariana Grande','Dua Lipa','Olivia Rodrigo','Sabrina Carpenter','Chappell Roan',
+  'Harry Styles','Shawn Mendes','Justin Bieber','Justin Timberlake','Ed Sheeran','Bruno Mars',
+  'Adele','Beyoncé','Rihanna','Lizzo','Doja Cat','Katy Perry','Selena Gomez','Camila Cabello',
+  'Halsey','Benson Boone','Charlie Puth','Sam Smith','Niall Horan','Liam Payne',
+  // Rock / alternative
+  'Foo Fighters','Red Hot Chili Peppers','Green Day','My Chemical Romance','Paramore',
+  'Twenty One Pilots','Imagine Dragons','Linkin Park','Metallica','AC/DC','The Rolling Stones',
+  'Guns N Roses','Aerosmith','Kiss','Bon Jovi','Bruce Springsteen','The Eagles',
+  'Fleetwood Mac','Tom Petty and the Heartbreakers','Radiohead','Arctic Monkeys',
+  'The Strokes','Arcade Fire','Jack White','Beck','Queens of the Stone Age',
+  'Muse','Coldplay','Oasis','Blur','The Cure','Depeche Mode','New Order',
+  'Fall Out Boy','Panic At The Disco','blink-182','Sum 41','Simple Plan',
+  'Nickelback','Hinder','Three Days Grace','Breaking Benjamin',
+  // Hip-hop / R&B
+  'Drake','Kendrick Lamar','J. Cole','Travis Scott','Future','Lil Wayne','Eminem',
+  'Jay-Z','Kanye West','Snoop Dogg','Ice Cube','Nicki Minaj','Cardi B','Megan Thee Stallion',
+  'Chance the Rapper','Wiz Khalifa','2 Chainz','Lil Baby','Gunna','Young Thug',
+  'Roddy Ricch','Polo G','Jack Harlow','Bad Bunny','J Balvin','Ozuna',
+  // Electronic / DJ
+  'Calvin Harris','Marshmello','The Chainsmokers','Diplo','Skrillex','Deadmau5',
+  'Tiësto','Martin Garrix','David Guetta','Zedd','Steve Aoki','Kygo','Illenium',
+  // Classic / legacy
+  'Elton John','Billy Joel','Paul McCartney','Rod Stewart','Neil Diamond','James Taylor',
+  'Sting','Peter Gabriel','Phil Collins','Eric Clapton','Carlos Santana','Stevie Wonder',
+  'Lionel Richie','Mariah Carey','Whitney Houston tribute','Michael Bublé','Andrea Bocelli',
+  'Josh Groban','Il Volo',
+  // Canadian
+  'Shania Twain','Celine Dion','Alanis Morissette','The Tragically Hip','Arcade Fire',
+  'Lights','Alessia Cara','Dean Brody','Brett Kissel','Corb Lund','Johnny Reid',
+  'Dallas Smith','Andrew Hyatt','Tenille Townes','Chad Brownlee',
+  // Other major acts
+  'Radiohead','Tame Impala','Mac DeMarco','Frank Ocean','SZA','Janelle Monáe',
+  'Florence and the Machine','Lana Del Rey','Lorde','Charli XCX','Rina Sawayama',
+  'Wet Leg','Mitski','Lucy Dacus','Phoebe Bridgers','boygenius','Snail Mail',
+  'Noah Kahan','Hozier','Dermot Kennedy','Niall Horan','Lewis Capaldi'
+];
+
+// Quick-add chips (subset shown by default)
+var CITY_S=['Las Vegas','Vancouver','Edmonton','Toronto','Nashville','Denver','Minneapolis','Chicago','Calgary','Pittsburgh'];
+var ARTIST_S=['Bryan Adams','Morgan Wallen','Zach Top','Post Malone','Lady Gaga','The Weeknd','Coldplay','U2','Pearl Jam'];
+var TEAM_S=['Calgary Flames','Edmonton Oilers','Vegas Golden Knights','Colorado Avalanche','Dallas Stars','Minnesota Wild','Buffalo Sabres','Tampa Bay Lightning','Pittsburgh Penguins','Toronto Maple Leafs'];
+
+// ── AUTOCOMPLETE ENGINE ────────────────────────────────────────────────────────
+var acFocusIdx = {city:-1, artist:-1, team:-1};
+var acBlurTimer = {};
+
+function getDataset(type) {
+  if (type==='city') return ALL_CITIES;
+  if (type==='artist') return ALL_ARTISTS;
+  return ALL_TEAMS;
+}
+
+function highlightMatch(str, query) {
+  if (!query) return str;
+  var idx = str.toLowerCase().indexOf(query.toLowerCase());
+  if (idx < 0) return str;
+  return str.slice(0,idx) + '<em>' + str.slice(idx, idx+query.length) + '</em>' + str.slice(idx+query.length);
+}
+
+function acInput(type) {
+  var inp = document.getElementById(type+'Input');
+  var q = inp.value.trim();
+  var drop = document.getElementById('ac-'+type);
+  var data = getDataset(type);
+  var used = getArr(type).map(function(v){return v.toLowerCase();});
+
+  var matches = q.length === 0
+    ? data.slice(0, 8)  // show top 8 when field is focused but empty
+    : data.filter(function(d){
+        return d.toLowerCase().indexOf(q.toLowerCase()) >= 0;
+      }).slice(0, 10);
+
+  if (matches.length === 0) { drop.classList.remove('open'); return; }
+
+  acFocusIdx[type] = -1;
+  drop.innerHTML = matches.map(function(m, i) {
+    var isUsed = used.indexOf(m.toLowerCase()) >= 0;
+    var sub = '';
+    if (type==='team') {
+      if (['Calgary Flames','Edmonton Oilers','Vancouver Canucks','Winnipeg Jets','Toronto Maple Leafs','Ottawa Senators','Montreal Canadiens','Buffalo Sabres','Boston Bruins','Detroit Red Wings','Columbus Blue Jackets','Pittsburgh Penguins','Philadelphia Flyers','New Jersey Devils','New York Rangers','New York Islanders','Washington Capitals','Carolina Hurricanes','Tampa Bay Lightning','Florida Panthers','Nashville Predators','St. Louis Blues','Chicago Blackhawks','Minnesota Wild','Dallas Stars','Colorado Avalanche','Utah Hockey Club','Vegas Golden Knights','Arizona Coyotes','Anaheim Ducks','Los Angeles Kings','Seattle Kraken','San Jose Sharks'].indexOf(m)>=0) sub='NHL';
+      else if (['Toronto Raptors','Boston Celtics','Philadelphia 76ers','Brooklyn Nets','New York Knicks','Milwaukee Bucks','Cleveland Cavaliers','Indiana Pacers','Chicago Bulls','Detroit Pistons','Atlanta Hawks','Miami Heat','Charlotte Hornets','Orlando Magic','Washington Wizards','Oklahoma City Thunder','Denver Nuggets','Minnesota Timberwolves','Utah Jazz','Portland Trail Blazers','Golden State Warriors','LA Clippers','Los Angeles Lakers','Phoenix Suns','Sacramento Kings','Dallas Mavericks','Memphis Grizzlies','New Orleans Pelicans','San Antonio Spurs','Houston Rockets'].indexOf(m)>=0) sub='NBA';
+      else if (['Toronto Blue Jays','Boston Red Sox','New York Yankees','New York Mets','Baltimore Orioles','Tampa Bay Rays','Chicago White Sox','Chicago Cubs','Cleveland Guardians','Detroit Tigers','Kansas City Royals','Minnesota Twins','Milwaukee Brewers','Cincinnati Reds','Pittsburgh Pirates','Los Angeles Dodgers','San Francisco Giants','San Diego Padres','Colorado Rockies','Arizona Diamondbacks','Seattle Mariners','Oakland Athletics','Houston Astros','Texas Rangers','Los Angeles Angels','Atlanta Braves','Miami Marlins','Washington Nationals','Philadelphia Phillies','St. Louis Cardinals'].indexOf(m)>=0) sub='MLB';
+      else sub='NFL';
+    }
+    return '<div class="ac-item'+(isUsed?' ac-used':'')+'" data-idx="'+i+'" data-val="'+m+'"'+(isUsed?'':' onmousedown="acPick(\''+type+'\',\''+m+'\')"')+'>'+highlightMatch(m,q)+(sub?'<span class="ac-sub">'+sub+'</span>':'')+(isUsed?'<span class="ac-sub">added</span>':'')+'</div>';
+  }).join('');
+  drop.classList.add('open');
+}
+
+function acKey(e, type) {
+  var drop = document.getElementById('ac-'+type);
+  var items = drop.querySelectorAll('.ac-item:not(.ac-used)');
+  if (!drop.classList.contains('open') || items.length===0) {
+    if (e.key==='Enter') { addItem(type); }
+    return;
+  }
+  if (e.key==='ArrowDown') {
+    e.preventDefault();
+    acFocusIdx[type] = Math.min(acFocusIdx[type]+1, items.length-1);
+    items.forEach(function(el,i){el.classList.toggle('foc', i===acFocusIdx[type]);});
+  } else if (e.key==='ArrowUp') {
+    e.preventDefault();
+    acFocusIdx[type] = Math.max(acFocusIdx[type]-1, 0);
+    items.forEach(function(el,i){el.classList.toggle('foc', i===acFocusIdx[type]);});
+  } else if (e.key==='Enter') {
+    e.preventDefault();
+    if (acFocusIdx[type] >= 0 && items[acFocusIdx[type]]) {
+      acPick(type, items[acFocusIdx[type]].dataset.val);
+    } else {
+      addItem(type);
+    }
+  } else if (e.key==='Escape') {
+    drop.classList.remove('open');
+  }
+}
+
+function acPick(type, val) {
+  document.getElementById(type+'Input').value = '';
+  document.getElementById('ac-'+type).classList.remove('open');
+  acFocusIdx[type] = -1;
+  // Add directly
+  var arr = getArr(type);
+  var already = arr.some(function(v){return v.toLowerCase()===val.toLowerCase();});
+  if (!already && arr.length < 10) {
+    arr.push(val);
+    renderTags(type); updateCount(type);
+    var qel = document.getElementById('qid-'+type+'-'+esc(val));
+    if (qel) qel.classList.add('used');
+    refresh();
+  }
+}
+
+function acBlur(type) {
+  // Small delay so mousedown on an item fires first
+  acBlurTimer[type] = setTimeout(function(){
+    var drop = document.getElementById('ac-'+type);
+    if (drop) drop.classList.remove('open');
+  }, 150);
+}
+
+function esc(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function initQA(elId, items, type) {
+  var el=document.getElementById(elId);
+  el.innerHTML=items.map(function(s){
+    return '<button class="qa" id="qid-'+type+'-'+esc(s)+'" onclick="quickAdd(\''+type+'\',\''+s+'\')">'+s+'</button>';
+  }).join('');
+}
+initQA('cityQA',CITY_S,'city');
+initQA('artistQA',ARTIST_S,'artist');
+initQA('teamQA',TEAM_S,'team');
+
+function quickAdd(type,val){
+  var arr=getArr(type);
+  var already=arr.some(function(v){return v.toLowerCase()===val.toLowerCase();});
+  if(already||arr.length>=10) return;
+  arr.push(val);
+  renderTags(type); updateCount(type);
+  var qel=document.getElementById('qid-'+type+'-'+esc(val));
+  if(qel) qel.classList.add('used');
+  refresh();
+}
+
+function addItem(type){
+  var inp=document.getElementById(type+'Input');
+  var raw=inp.value.trim();
+  if(!raw) return;
+  var arr=getArr(type);
+  var already=arr.some(function(v){return v.toLowerCase()===raw.toLowerCase();});
+  if(already||arr.length>=10){ inp.value=''; inp.focus(); return; }
+  arr.push(raw);
+  inp.value=''; inp.focus();
+  renderTags(type); updateCount(type);
+  var qel=document.getElementById('qid-'+type+'-'+esc(raw));
+  if(qel) qel.classList.add('used');
+  refresh();
+}
+
+function removeItem(type,val){
+  S[KEYS[type]]=getArr(type).filter(function(v){return v!==val;});
+  renderTags(type); updateCount(type);
+  var qel=document.getElementById('qid-'+type+'-'+esc(val));
+  if(qel) qel.classList.remove('used');
+  refresh();
+}
+
+function renderTags(type){
+  var el=document.getElementById(type+'Tags');
+  el.innerHTML=getArr(type).map(function(v){
+    return '<div class="tag '+type+'"><span>'+v+'</span><button class="tag-x" onclick="removeItem(\''+type+'\',\''+v+'\')">×</button></div>';
+  }).join('');
+}
+function updateCount(type){ document.getElementById(type+'Count').textContent=getArr(type).length+'/10'; }
+function updateProgress(){
+  S.home=document.getElementById('homeInput').value.trim();
+  var steps=[S.home.length>0,S.cities.length>0,S.artists.length>0,S.teams.length>0];
+  for(var i=0;i<4;i++){
+    document.getElementById('ps'+(i+1)).className='ps'+(steps[i]?' done':'');
+  }
+}
+
+var cached=[];
+
+function refresh(){
+  S.home=document.getElementById('homeInput').value.trim();
+  updateProgress();
+  var hasAny=S.cities.length||S.artists.length||S.teams.length;
+  if(!hasAny){
+    document.getElementById('emptyState').style.display='block';
+    document.getElementById('resultsState').style.display='none';
+    return;
+  }
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resultsState').style.display='block';
+
+  var uc=S.cities.map(function(c){return c.toLowerCase();});
+  var ua=S.artists.map(function(a){return a.toLowerCase();});
+  var ut=S.teams.map(function(t){return t.toLowerCase();});
+
+  var matched=FUTURE.filter(function(e){
+    // Include both the home city and travel cities
+    var homeCityLower = S.home ? S.home.toLowerCase().split(',')[0].trim() : '';
+    var inCity = uc.indexOf(e.city.toLowerCase())>=0 ||
+                 (homeCityLower && e.city.toLowerCase().includes(homeCityLower));
+    var aMatch=e.type==='artist' && ua.indexOf(e.name.toLowerCase())>=0;
+    var tMatch=e.type==='team'   && ut.indexOf(e.name.toLowerCase())>=0;
+    return inCity && (aMatch||tMatch);
+  });
+
+  var byWin={};
+  matched.forEach(function(e){
+    var d=new Date(e.date+'T12:00:00');
+    var dow=d.getDay();
+    var dtt=(dow+3)%7;
+    var ws=new Date(d); ws.setDate(d.getDate()-dtt);
+    var key=e.city+'|'+ws.toDateString();
+    if(!byWin[key]) byWin[key]={city:e.city,start:ws,events:[],artistsSeen:[],teamsSeen:[]};
+    // Deduplicate: same artist OR same team only counts ONCE per window
+    // (a residency with 5 nights is still one "hit", not 5)
+    var artistKey = e.type==='artist' ? e.name.toLowerCase() : null;
+    var teamKey   = e.type==='team'   ? e.name.toLowerCase() : null;
+    var alreadySeen = artistKey
+      ? byWin[key].artistsSeen.indexOf(artistKey)>=0
+      : byWin[key].teamsSeen.indexOf(teamKey)>=0;
+    if(!alreadySeen){
+      // Store the first occurrence of this artist/team for display
+      byWin[key].events.push(e);
+      if(artistKey) byWin[key].artistsSeen.push(artistKey);
+      if(teamKey)   byWin[key].teamsSeen.push(teamKey);
+    }
+  });
+
+  var windows=[];
+  for(var k in byWin){
+    var w=byWin[k];
+    // aHits/tHits = unique artists and teams in this window
+    var aHits=w.artistsSeen.length;
+    var tHits=w.teamsSeen.length;
+    var uniqueHits=aHits+tHits; // total distinct acts
+    var score=uniqueHits*35;
+    if(aHits>0&&tHits>0) score+=20; // mix bonus
+    if(uniqueHits>=3) score+=15;    // triple bonus
+    var fh=getFlight(w.city);
+    if(fh===0) score+=10;
+    else if(fh!==null&&fh>5) score-=10;
+    else if(fh===null&&S.home) score-=5;
+    score=Math.min(99,Math.max(1,score));
+    windows.push({city:w.city,start:w.start,events:w.events,score:score,aHits:aHits,tHits:tHits,uniqueHits:uniqueHits,fh:fh});
+  }
+  windows.sort(function(a,b){return b.score-a.score||a.start-b.start;});
+  cached=windows;
+
+  // Stats — use unique hits
+  var totalHits=windows.reduce(function(s,w){return s+w.uniqueHits;},0);
+  var trips=windows.filter(function(w){return w.uniqueHits>=3;}).length;
+  var ucits=[].concat(windows.map(function(w){return w.city;})).filter(function(v,i,a){return a.indexOf(v)===i;}).length;
+  document.getElementById('statsRow').innerHTML=
+    '<div class="stat"><div class="stat-num">'+windows.length+'</div><div class="stat-label">matching weekends</div></div>'+
+    '<div class="stat"><div class="stat-num">'+totalHits+'</div><div class="stat-label">unique act overlaps</div></div>'+
+    '<div class="stat"><div class="stat-num">'+trips+'</div><div class="stat-label">triple+ overlaps</div></div>'+
+    '<div class="stat"><div class="stat-num">'+ucits+'</div><div class="stat-label">cities in play</div></div>';
+  document.getElementById('matchBadge').textContent=windows.length;
+
+  // Notices
+  var notices=[];
+  // Flames not in playoffs
+  if(ut.indexOf('calgary flames')>=0){
+    notices.push('<div class="notice"><div>🔔</div><div><strong>Calgary Flames missed the 2026 playoffs</strong><span>The Flames didn\'t qualify this postseason. The 2026–27 schedule drops June/July — matches will update automatically.</span></div></div>');
+  }
+  // Artists with no NA dates
+  S.artists.forEach(function(a){
+    var msg=NO_NA[a.toLowerCase()];
+    if(msg) notices.push('<div class="notice"><div>ℹ️</div><div><strong>'+a+' — no upcoming North America dates</strong><span>'+msg+'</span></div></div>');
+  });
+  // NBA/NFL/MLB teams — we only have NHL playoff data right now
+  var NHL_TEAMS=['calgary flames','edmonton oilers','vancouver canucks','winnipeg jets','toronto maple leafs','ottawa senators','montreal canadiens','buffalo sabres','boston bruins','detroit red wings','columbus blue jackets','pittsburgh penguins','philadelphia flyers','new jersey devils','new york rangers','new york islanders','washington capitals','carolina hurricanes','tampa bay lightning','florida panthers','nashville predators','st. louis blues','chicago blackhawks','minnesota wild','dallas stars','colorado avalanche','utah hockey club','vegas golden knights','arizona coyotes','anaheim ducks','los angeles kings','seattle kraken','san jose sharks'];
+  S.teams.forEach(function(t){
+    var tl=t.toLowerCase();
+    if(NHL_TEAMS.indexOf(tl)<0){
+      notices.push('<div class="notice"><div>ℹ️</div><div><strong>'+t+' — coming soon</strong><span>NBA, NFL, and MLB schedules are on the roadmap. Only NHL playoff games are in the current dataset.</span></div></div>');
+    }
+  });
+  // No cities added yet
+  if(S.cities.length===0&&!S.home&&(S.artists.length||S.teams.length)){
+    notices.push('<div class="notice"><div>👆</div><div><strong>Add a home city or travel cities</strong><span>We match events to the cities you\'re willing to go to.</span></div></div>');
+  }
+  document.getElementById('noticeArea').innerHTML=notices.join('');
+
+  // Title/sub
+  var citiesWithMatches={};
+  windows.forEach(function(w){citiesWithMatches[w.city.toLowerCase()]=true;});
+  var noMatch=S.cities.filter(function(c){return !citiesWithMatches[c.toLowerCase()];});
+  document.getElementById('matchTitle').textContent=windows.length===0?'No matches yet':windows.length+' weekend'+(windows.length!==1?'s':'')+' found';
+  var sub='';
+  if(windows.length>0){
+    sub='Sorted by overlap score — best trips first';
+    if(noMatch.length) sub+=' · No events yet in: '+noMatch.join(', ');
+  } else if(S.cities.length&&(S.artists.length||S.teams.length)){
+    sub='No overlaps in your cities yet. Try adding more cities.';
+  }
+  document.getElementById('matchSub').textContent=sub;
+
+  renderGrid(windows);
+  renderByCity(windows);
+  renderByArtist(windows);
+  renderByTeam(windows);
+}
+
+function sortMatches(val){
+  var s=cached.slice();
+  if(val==='date') s.sort(function(a,b){return a.start-b.start;});
+  else if(val==='city') s.sort(function(a,b){return a.city.localeCompare(b.city);});
+  else s.sort(function(a,b){return b.score-a.score;});
+  renderGrid(s);
+}
+
+function buildCard(w,fw){
+  var uHits=w.uniqueHits||w.events.length;
+  var tier=uHits>=3?'triple':uHits===2?'double':'single';
+  var tl=uHits>=3?'Triple overlap':uHits===2?'Doubleheader':'Single match';
+  var end=new Date(w.start); end.setDate(end.getDate()+3);
+  function fmt(d){return d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});}
+  function fmtY(d){return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
+  var fl='';
+  if(S.home){
+    if(w.fh===0) fl='<strong>Home city</strong> — no flights needed';
+    else if(w.fh!==null) fl='<strong>~'+w.fh+'h</strong> direct from '+S.home.split(',')[0];
+    else fl='No direct flight from '+S.home.split(',')[0]+' found';
+  }
+  var evs=w.events.slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);}).map(function(e){
+    var allDates=FUTURE.filter(function(f){
+      if(f.city!==w.city||f.name!==e.name) return false;
+      var fd=new Date(f.date+'T12:00:00'), we=new Date(w.start);
+      we.setDate(we.getDate()+6);
+      return fd>=w.start && fd<=we;
+    }).map(function(f){return f.date;}).sort();
+    var dateLabel='';
+    if(allDates.length<=1){
+      dateLabel=new Date(e.date+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+    } else {
+      var first=new Date(allDates[0]+'T12:00:00'),last=new Date(allDates[allDates.length-1]+'T12:00:00');
+      dateLabel=fmt(first)+'–'+fmt(last)+' ('+allDates.length+'n)';
+    }
+    return '<div class="mevent type-'+e.type+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+(e.note?' <span style="font-weight:300;opacity:.65">· '+e.note+'</span>':'')+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dateLabel+'</div></div>';
+  }).join('');
+  return '<div class="mcard '+tier+(fw?' mcard-full':'')+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+'</div><div class="mcard-dates">'+fmt(w.start)+' – '+fmtY(end)+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+w.score+'</div><div class="score-lbl">score</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot"><div class="flight-info">'+fl+'</div><div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
+}
+
+function renderGrid(wins){
+  var el=document.getElementById('matchGrid');
+  el.innerHTML=wins.length?wins.map(function(w){return buildCard(w,false);}).join(''):'<div style="color:var(--ink3);font-size:13px;padding:16px 0;grid-column:1/-1">No matches found — add more cities, artists, or teams.</div>';
+}
+
+function renderByCity(wins){
+  var cits=wins.map(function(w){return w.city;}).filter(function(v,i,a){return a.indexOf(v)===i;});
+  document.getElementById('cityFCGrid').innerHTML=cits.length?cits.map(function(c){
+    var cnt=wins.filter(function(w){return w.city===c;}).reduce(function(s,w){return s+w.events.length;},0);
+    return '<div class="fc" onclick="filterByCity(\''+c+'\',this)"><div class="fc-name">'+c+'</div><div class="fc-sub"><strong>'+cnt+'</strong> matched event'+(cnt!==1?'s':'')+'</div></div>';
+  }).join(''):'<div style="color:var(--ink3);font-size:13px">No city matches yet.</div>';
+  document.getElementById('byCityResults').innerHTML='';
+}
+function filterByCity(city,el){
+  document.querySelectorAll('#cityFCGrid .fc').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');
+  var ws=cached.filter(function(w){return w.city===city;});
+  document.getElementById('byCityResults').innerHTML='<div class="sec-div">Matches in '+city+'</div><div class="single-col">'+ws.map(function(w){return buildCard(w,true);}).join('')+'</div>';
+}
+
+function renderByArtist(wins){
+  var el=document.getElementById('artistFCGrid');
+  el.innerHTML=S.artists.length?S.artists.map(function(a){
+    var al=a.toLowerCase();
+    var cnt=wins.reduce(function(s,w){return s+w.events.filter(function(e){return e.name.toLowerCase()===al;}).length;},0);
+    var noNa=NO_NA[al];
+    return '<div class="fc'+(cnt===0?' dim':'')+'" onclick="filterByArtist(\''+a+'\',this)"><div class="fc-name">'+a+'</div><div class="fc-sub">'+(noNa?'No 2026 NA dates':cnt>0?'<strong>'+cnt+'</strong> show'+(cnt!==1?'s':'')+' found':'No matches yet')+'</div></div>';
+  }).join(''):'<div style="color:var(--ink3);font-size:13px">Add artists on the left.</div>';
+  document.getElementById('byArtistResults').innerHTML='';
+}
+function filterByArtist(artist,el){
+  document.querySelectorAll('#artistFCGrid .fc').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');
+  var al=artist.toLowerCase();
+  var noNa=NO_NA[al];
+  var ws=cached.filter(function(w){return w.events.some(function(e){return e.name.toLowerCase()===al;});});
+  var html=noNa?'<div class="notice" style="margin-top:0"><div>ℹ️</div><div>'+noNa+'</div></div>':'';
+  html+=ws.length?'<div class="sec-div">'+artist+' — dates in your cities</div><div class="single-col">'+ws.map(function(w){return buildCard(w,true);}).join('')+'</div>':'<div style="color:var(--ink3);font-size:13px;padding:10px 0">'+(noNa?'':'No '+artist+' shows found in your cities.')+'</div>';
+  document.getElementById('byArtistResults').innerHTML=html;
+}
+
+function renderByTeam(wins){
+  var el=document.getElementById('teamFCGrid');
+  el.innerHTML=S.teams.length?S.teams.map(function(t){
+    var tl=t.toLowerCase();
+    var cnt=wins.reduce(function(s,w){return s+w.events.filter(function(e){return e.name.toLowerCase()===tl;}).length;},0);
+    return '<div class="fc'+(cnt===0?' dim':'')+'" onclick="filterByTeam(\''+t+'\',this)"><div class="fc-name">'+t+'</div><div class="fc-sub">'+(cnt>0?'<strong>'+cnt+'</strong> game'+(cnt!==1?'s':'')+' found':'No matches yet')+'</div></div>';
+  }).join(''):'<div style="color:var(--ink3);font-size:13px">Add teams on the left.</div>';
+  document.getElementById('byTeamResults').innerHTML='';
+}
+function filterByTeam(team,el){
+  document.querySelectorAll('#teamFCGrid .fc').forEach(function(c){c.classList.remove('sel');});
+  el.classList.add('sel');
+  var tl=team.toLowerCase();
+  var ws=cached.filter(function(w){return w.events.some(function(e){return e.name.toLowerCase()===tl;});});
+  document.getElementById('byTeamResults').innerHTML=ws.length?'<div class="sec-div">'+team+' — games in your cities</div><div class="single-col">'+ws.map(function(w){return buildCard(w,true);}).join('')+'</div>':'<div style="color:var(--ink3);font-size:13px;padding:10px 0">No '+team+' games in your selected cities.</div>';
+}
+
+function switchView(id,btn){
+  document.querySelectorAll('.vtab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.vp').forEach(function(p){p.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('vp-'+id).classList.add('active');
+}
+
+function clearAll(){
+  S.cities=[]; S.artists=[]; S.teams=[]; S.home='';
+  document.getElementById('homeInput').value='';
+  ['city','artist','team'].forEach(function(t){renderTags(t);updateCount(t);});
+  document.querySelectorAll('.qa').forEach(function(q){q.classList.remove('used');});
+  document.getElementById('emptyState').style.display='block';
+  document.getElementById('resultsState').style.display='none';
+  updateProgress();
+}
+
+document.getElementById('homeInput').addEventListener('input', refresh);
+updateProgress();
+</script>
+</body>
+</html>
