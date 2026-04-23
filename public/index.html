@@ -123,8 +123,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .me-link:hover{text-decoration:underline}
 .broad-tag{font-size:9px;padding:1px 5px;border-radius:4px;background:var(--rust-lt);color:var(--rust);border:1px solid var(--rust-bd);margin-left:4px;vertical-align:middle;font-family:'DM Mono',monospace;letter-spacing:.02em}
 .mcard-foot{padding:7px 15px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
-.flight-link{font-size:11px;color:var(--gold);text-decoration:none;font-weight:500}
-.flight-link:hover{text-decoration:underline}
+.flight-link{font-size:12px;color:var(--ink);text-decoration:none;font-weight:600;background:var(--gold-lt);border:1px solid var(--gold-bd);padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.flight-link:hover{background:var(--gold);color:var(--ink);border-color:var(--gold)}
 .flight-info{font-size:11px;color:var(--ink3)}.flight-info strong{color:var(--ink2)}
 .tier-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;font-family:'DM Mono',monospace;white-space:nowrap}
 .tier-pill.triple{background:var(--teal-lt);color:var(--teal)}
@@ -341,13 +341,47 @@ function getFlight(city) {
   return null;
 }
 
+// City name → IATA airport code (major North American cities)
+var CITY_IATA = {
+  'calgary':'YYC','edmonton':'YEG','vancouver':'YVR','victoria':'YYJ','kelowna':'YLW',
+  'kamloops':'YKA','saskatoon':'YXE','regina':'YQR','winnipeg':'YWG','thunder bay':'YQT',
+  'toronto':'YYZ','ottawa':'YOW','montreal':'YUL','quebec city':'YQB','halifax':'YHZ',
+  'moncton':'YQM','hamilton':'YHM','london':'YXU','windsor':'YQG',
+  'las vegas':'LAS','los angeles':'LAX','inglewood':'LAX','anaheim':'LAX',
+  'san francisco':'SFO','san jose':'SJC','seattle':'SEA','portland':'PDX',
+  'phoenix':'PHX','glendale':'PHX','denver':'DEN','salt lake city':'SLC',
+  'boise':'BOI','albuquerque':'ABQ','el paso':'ELP','dallas':'DFW',
+  'fort worth':'DFW','houston':'IAH','austin':'AUS','san antonio':'SAT',
+  'minneapolis':'MSP','saint paul':'MSP','chicago':'ORD','milwaukee':'MKE',
+  'indianapolis':'IND','detroit':'DTW','cleveland':'CLE','columbus':'CMH',
+  'pittsburgh':'PIT','philadelphia':'PHL','new york':'JFK','newark':'EWR',
+  'buffalo':'BUF','boston':'BOS','washington':'IAD','baltimore':'BWI',
+  'charlotte':'CLT','raleigh':'RDU','nashville':'BNA','memphis':'MEM',
+  'atlanta':'ATL','orlando':'MCO','tampa':'TPA','miami':'MIA',
+  'new orleans':'MSY','kansas city':'MCI','st. louis':'STL',
+  'baton rouge':'BTR','birmingham':'BHM','gainesville':'GNV','ann arbor':'DTW',
+  'abbotsford':'YXX','vancouver':'YVR',
+};
+
+function getCityIATA(city) {
+  var cl = city.toLowerCase().trim();
+  if (CITY_IATA[cl]) return CITY_IATA[cl];
+  // Fuzzy match
+  for (var k in CITY_IATA) {
+    if (cl.includes(k) || k.includes(cl)) return CITY_IATA[k];
+  }
+  return cl.toUpperCase().slice(0,3); // fallback
+}
+
 function getSkyscannerUrl(city, dateStr) {
-  // dateStr = "2026-06-03"
-  var d = dateStr ? dateStr.replace(/-/g,'') : '';
-  var origin = S.home ? S.home.split(',')[0].trim().replace(/\s+/g,'-').toLowerCase() : 'calgary';
-  var dest = city.toLowerCase().replace(/\s+/g,'-');
-  // Skyscanner deep-link format
-  return 'https://www.skyscanner.com/transport/flights/' + origin + '/' + dest + '/' + d + '/';
+  var originCity = S.home ? S.home.split(',')[0].trim() : 'Calgary';
+  var originIATA = getCityIATA(originCity);
+  var destIATA   = getCityIATA(city);
+  var base = 'https://www.skyscanner.net/g/referrals/v1/flights/day-view/';
+  var params = '?origin=' + originIATA + '&destination=' + destIATA;
+  if (dateStr) params += '&outboundDate=' + dateStr;
+  params += '&adults=1&cabinclass=economy';
+  return base + params;
 }
 
 // ── GEOLOCATION ───────────────────────────────────────────────────────────────
@@ -454,9 +488,10 @@ var ALL_ARTISTS = [
 var ALL_GENRES = ['Country','Rock','Pop','EDM','Hip-Hop','R&B','Jazz','Classical','Metal','Folk','Indie','Alternative'];
 var ALL_LEAGUES = ['NHL','NBA','NFL','MLB','MLS'];
 
-var CITY_S   = ['Las Vegas','Vancouver','Edmonton','Toronto','Nashville','Denver','Minneapolis','Chicago','Calgary','Pittsburgh'];
-var ARTIST_S = ['Bryan Adams','Morgan Wallen','Zach Top','Post Malone','Lady Gaga','The Weeknd','Coldplay','U2','Pearl Jam'];
-var TEAM_S   = ['Calgary Flames','Edmonton Oilers','Vegas Golden Knights','Colorado Avalanche','Dallas Stars','Minnesota Wild','Buffalo Sabres','Tampa Bay Lightning','Pittsburgh Penguins','Toronto Maple Leafs'];
+// Quick-add suggestions — artists currently touring NA in 2026, popular teams
+var CITY_S   = ['Las Vegas','Vancouver','Toronto','Nashville','Denver','Chicago','New York','Boston','Seattle','Atlanta'];
+var ARTIST_S = ['Morgan Wallen','Zach Top','Post Malone','Sabrina Carpenter','Billie Eilish','Kendrick Lamar','Hozier','Noah Kahan','Lainey Wilson','Jelly Roll'];
+var TEAM_S   = ['Vegas Golden Knights','Edmonton Oilers','Toronto Maple Leafs','Dallas Stars','Colorado Avalanche','Minnesota Wild','Boston Bruins','Florida Panthers','Carolina Hurricanes','Tampa Bay Lightning'];
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────────────────────────
 var acFocusIdx = {city:-1,artist:-1,team:-1};
@@ -877,14 +912,17 @@ function buildCard(w){
   var fd=w.firstDate||w.start,ld=w.lastDate||w.start;
   var dateStr=fmt(fd)===fmt(ld)?fmtY(fd):fmt(fd)+' – '+fmtY(ld);
   var fh=w.fh;
+  var firstEventDate = w.events[0] && w.events[0].date ? w.events[0].date : '';
   var flightHtml='';
   if(S.home){
     if(fh===0){
       flightHtml='<span class="flight-info"><strong>Home city</strong></span>';
     } else {
-      var skyUrl=getSkyscannerUrl(w.city, w.firstDate?w.firstDate.toISOString?w.firstDate.toISOString().split('T')[0]:w.events[0]&&w.events[0].date:'');
-      var flightLabel=fh!==null?'~'+fh+'h direct':'Search flights';
-      flightHtml='<a class="flight-link" href="'+skyUrl+'" target="_blank">✈ '+flightLabel+'</a>';
+      var skyUrl=getSkyscannerUrl(w.city, firstEventDate);
+      var originIATA=getCityIATA(S.home.split(',')[0].trim());
+      var destIATA=getCityIATA(w.city);
+      var flightLabel=fh!==null?'✈ '+originIATA+'→'+destIATA+' ~'+fh+'h':'✈ Search flights';
+      flightHtml='<a class="flight-link" href="'+skyUrl+'" target="_blank">'+flightLabel+'</a>';
     }
   }
 
