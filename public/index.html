@@ -1109,12 +1109,16 @@ updateProgress();
 <script type="module">
 import { initAuth, bindModalControls, loadPreferences, savePreferences, getUser } from '/auth.js';
 
+// Expose on window so non-module code can access
+window._getUser = getUser;
+window._savePrefs = savePreferences;
+
 async function hydrate(prefs) {
   if (!prefs) return;
   if (prefs.home_city) {
     S.home = prefs.home_city;
-    document.getElementById('homeInput').value = prefs.home_city;
-    document.getElementById('homeInput').dispatchEvent(new Event('input'));
+    const inp = document.getElementById('homeInput');
+    if (inp) { inp.value = prefs.home_city; inp.dispatchEvent(new Event('input')); }
   }
   for (const [key, vals] of Object.entries({
     cities: prefs.travel_cities, artists: prefs.artists,
@@ -1126,21 +1130,40 @@ async function hydrate(prefs) {
   }
   if (typeof renderAll === 'function') renderAll();
   else if (typeof buildSidebar === 'function') buildSidebar();
+  else if (typeof updateUI === 'function') updateUI();
 }
 
 await initAuth({
-  onLogin: async (user) => { hydrate(await loadPreferences()); },
-  onLogout: () => {}
+  onLogin: async (user) => {
+    console.log('[auth] logged in:', user.email);
+    const prefs = await loadPreferences();
+    console.log('[auth] loaded prefs:', prefs);
+    hydrate(prefs);
+  },
+  onLogout: () => { console.log('[auth] logged out'); }
 });
 bindModalControls();
 
-document.getElementById('findBtn')?.addEventListener('click', () => {
-  if (getUser()) savePreferences({
-    home_city: S.home, travel_cities: S.cities,
-    artists: S.artists, teams: S.teams,
-    genres: S.genres, leagues: S.leagues,
-  });
-}, { capture: true });
+// Wrap findMatches to save prefs after each search
+const _orig = window.findMatches;
+window.findMatches = async function() {
+  const result = _orig?.apply(this, arguments);
+  const user = window._getUser?.();
+  if (user) {
+    const prefs = {
+      home_city: S.home,
+      travel_cities: [...(S.cities||[])],
+      artists: [...(S.artists||[])],
+      teams: [...(S.teams||[])],
+      genres: [...(S.genres||[])],
+      leagues: [...(S.leagues||[])],
+    };
+    console.log('[auth] saving prefs:', prefs);
+    await window._savePrefs(prefs);
+    console.log('[auth] prefs saved');
+  }
+  return result;
+};
 </script>
 
 </body>
