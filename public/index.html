@@ -1192,8 +1192,7 @@ async function hydrate(prefs) {
       if (!S[key].includes(v)) S[key].push(v);
     }
   }
-  if (typeof renderAll === 'function') renderAll();
-  else if (typeof buildSidebar === 'function') buildSidebar();
+  ['city','artist','team','genre','league'].forEach(t => { try { renderTags(t); } catch(e) {} });
 }
 
 // ── Auth init ─────────────────────────────────────────────────────────────
