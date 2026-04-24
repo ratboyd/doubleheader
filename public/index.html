@@ -1193,6 +1193,8 @@ async function hydrate(prefs) {
     }
   }
   ['city','artist','team','genre','league'].forEach(t => { try { renderTags(t); } catch(e) {} });
+  ['city','artist','team','genre','league'].forEach(t => { try { updateCount(t); } catch(e) {} });
+  try { updateProgress(); } catch(e) {}
 }
 
 // ── Auth init ─────────────────────────────────────────────────────────────
