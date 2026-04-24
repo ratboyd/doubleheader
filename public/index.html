@@ -174,6 +174,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 #auth-error{margin-top:8px;font-size:12px;color:#f87171}
 #auth-error.hidden,#auth-confirm-msg.hidden{display:none}
 #auth-confirm-msg{margin-top:10px;font-size:13px;color:#888;line-height:1.5}
+
+/* Subscribe button */
+#subscribe-bar{margin:8px 0 4px;display:none}
+#subscribe-bar.visible{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sub-btn{background:var(--gold);color:var(--ink);border:none;border-radius:7px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.sub-btn:hover{opacity:0.85}
+.sub-btn.update{background:rgba(255,255,255,0.1);color:inherit;font-weight:500}
+.sub-status{font-size:12px;color:var(--ink3)}
+.sub-active-label{font-size:12px;color:var(--gold);font-weight:500}
 </style>
 </head>
 <body>
@@ -302,6 +311,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
           <div>
             <div class="results-title" id="matchTitle">Your matches</div>
             <div class="results-sub" id="matchSub"></div>
+          <div id="subscribe-bar"></div>
           </div>
           <select class="sort-sel" onchange="sortMatches(this.value)">
             <option value="score">Best overlap first</option>
@@ -1109,12 +1119,66 @@ updateProgress();
 <script type="module">
 import { initAuth, bindModalControls, loadPreferences, savePreferences, getUser } from '/auth.js';
 
-// Expose on window so non-module code can access
+// ── Subscription helpers ──────────────────────────────────────────────────
+
+function updateSubscribeBar(hasSub) {
+  const bar = document.getElementById('subscribe-bar');
+  if (!bar) return;
+  const user = getUser();
+  if (!user) {
+    // Not logged in — show prompt to log in to subscribe
+    bar.innerHTML = `<span class="sub-status">Want alerts for new matches?</span>
+      <button class="sub-btn" onclick="document.getElementById('auth-open-modal')?.click()">Log in to subscribe</button>`;
+    bar.classList.add('visible');
+    return;
+  }
+  if (hasSub) {
+    bar.innerHTML = `
+      <span class="sub-active-label">&#10003; Subscribed to these alerts</span>
+      <button class="sub-btn update" id="update-sub-btn">Update subscription</button>`;
+    document.getElementById('update-sub-btn')?.addEventListener('click', saveSubscription);
+  } else {
+    bar.innerHTML = `
+      <span class="sub-status">Get email alerts when new dates drop for this search</span>
+      <button class="sub-btn" id="save-sub-btn">Subscribe to these alerts</button>`;
+    document.getElementById('save-sub-btn')?.addEventListener('click', saveSubscription);
+  }
+  bar.classList.add('visible');
+}
+
+async function saveSubscription() {
+  const user = getUser();
+  if (!user) return;
+  const bar = document.getElementById('subscribe-bar');
+  const prefs = {
+    home_city: S.home,
+    travel_cities: [...(S.cities||[])],
+    artists: [...(S.artists||[])],
+    teams: [...(S.teams||[])],
+    genres: [...(S.genres||[])],
+    leagues: [...(S.leagues||[])],
+  };
+  if (bar) bar.innerHTML = '<span class="sub-status">Saving...</span>';
+  await window._savePrefs(prefs);
+  window._hasSub = true;
+  if (bar) {
+    bar.innerHTML = `<span class="sub-active-label">&#10003; Subscribed! We'll email you when new matches drop.</span>
+      <button class="sub-btn update" id="update-sub-btn" style="margin-left:4px">Update</button>`;
+    document.getElementById('update-sub-btn')?.addEventListener('click', saveSubscription);
+  }
+}
+
+window._saveSubscription = saveSubscription;
+window._updateSubscribeBar = updateSubscribeBar;
 window._getUser = getUser;
 window._savePrefs = savePreferences;
+window._hasSub = false;
+
+// ── Hydrate sidebar from saved subscription ───────────────────────────────
 
 async function hydrate(prefs) {
   if (!prefs) return;
+  window._hasSub = true;
   if (prefs.home_city) {
     S.home = prefs.home_city;
     const inp = document.getElementById('homeInput');
@@ -1130,38 +1194,32 @@ async function hydrate(prefs) {
   }
   if (typeof renderAll === 'function') renderAll();
   else if (typeof buildSidebar === 'function') buildSidebar();
-  else if (typeof updateUI === 'function') updateUI();
 }
+
+// ── Auth init ─────────────────────────────────────────────────────────────
 
 await initAuth({
   onLogin: async (user) => {
     console.log('[auth] logged in:', user.email);
     const prefs = await loadPreferences();
-    console.log('[auth] loaded prefs:', prefs);
-    hydrate(prefs);
+    console.log('[auth] subscription:', prefs);
+    if (prefs) {
+      await hydrate(prefs);
+      window._hasSub = true;
+    }
   },
-  onLogout: () => { console.log('[auth] logged out'); }
+  onLogout: () => {
+    window._hasSub = false;
+  }
 });
 bindModalControls();
 
-// Wrap findMatches to save prefs after each search
+// ── Hook findMatches to show subscribe bar after results load ─────────────
 const _orig = window.findMatches;
-window.findMatches = async function() {
+window.findMatches = function() {
   const result = _orig?.apply(this, arguments);
-  const user = window._getUser?.();
-  if (user) {
-    const prefs = {
-      home_city: S.home,
-      travel_cities: [...(S.cities||[])],
-      artists: [...(S.artists||[])],
-      teams: [...(S.teams||[])],
-      genres: [...(S.genres||[])],
-      leagues: [...(S.leagues||[])],
-    };
-    console.log('[auth] saving prefs:', prefs);
-    await window._savePrefs(prefs);
-    console.log('[auth] prefs saved');
-  }
+  // Show subscribe bar after results render
+  setTimeout(() => updateSubscribeBar(window._hasSub), 800);
   return result;
 };
 </script>
