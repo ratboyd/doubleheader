@@ -10,8 +10,16 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
+[[redirects]]
+  from = "/auth/callback"
+  to = "/index.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+
+[functions."alerts"]
+  schedule = "0 8 * * *"
