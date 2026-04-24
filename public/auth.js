@@ -42,7 +42,7 @@ function updateAuthUI() {
       <button class="auth-signout" id="auth-signout-btn">Sign out</button>`;
     document.getElementById("auth-signout-btn")?.addEventListener("click", signOut);
   } else {
-    pill.innerHTML = `<button class="auth-login-btn" id="auth-open-modal">Save preferences</button>`;
+    pill.innerHTML = `<button class="auth-login-btn" id="auth-open-modal">Log in</button>`;
     document.getElementById("auth-open-modal")?.addEventListener("click", openModal);
   }
 }
