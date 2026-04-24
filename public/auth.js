@@ -6,7 +6,7 @@ const SUPABASE_ANON = "sb_publishable_jSFOAreU6W7uvlZlYW_HiA_nEpVLQVH";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
-    redirectTo: location.origin + "/auth/callback",
+    redirectTo: "https://stellular-centaur-f0a42b.netlify.app/auth/callback",
     persistSession: true,
   },
 });
