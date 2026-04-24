@@ -420,7 +420,7 @@ function getSkyscannerUrl(city, dateStr) {
   var base = 'https://www.skyscanner.net/g/referrals/v1/flights/day-view/';
   var params = '?origin=' + originIATA + '&destination=' + destIATA;
   if (dateStr) params += '&outboundDate=' + dateStr;
-  params += '&adults=1&cabinclass=economy';
+  params += '&adults=1&cabinclass=economy&market=CA&locale=en-CA&currency=CAD';
   return base + params;
 }
 
