@@ -413,13 +413,42 @@ function getCityIATA(city) {
   return cl.toUpperCase().slice(0,3); // fallback
 }
 
+function getFridayOf(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay(); // 0=Sun,1=Mon,...5=Fri,6=Sat
+  // If Friday or later (Fri/Sat), use that Friday
+  // If earlier in week, go to next Friday
+  const daysToFriday = day <= 5 ? (5 - day) : (5 - day + 7);
+  // Actually: go back to the Friday of this weekend
+  // Fri=0 back, Sat=1 back, Sun=2 back, Mon=4 fwd... 
+  // Simpler: find the Friday on or before Sat, or the Friday before Sun
+  let offset = 0;
+  if (day === 6) offset = -1; // Sat -> Fri
+  else if (day === 0) offset = -2; // Sun -> Fri
+  else if (day === 5) offset = 0; // Fri -> Fri
+  else offset = 5 - day; // Mon-Thu -> next Fri
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().split('T')[0];
+}
+
+function formatCardDate(d1, d2) {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const start = new Date(d1 + 'T12:00:00');
+  const startStr = days[start.getDay()] + ' ' + months[start.getMonth()] + ' ' + start.getDate();
+  if (!d2 || d1 === d2) return startStr + ', ' + start.getFullYear();
+  const end = new Date(d2 + 'T12:00:00');
+  const endStr = days[end.getDay()] + ' ' + months[end.getMonth()] + ' ' + end.getDate();
+  return startStr + ' – ' + endStr + ', ' + end.getFullYear();
+}
+
 function getSkyscannerUrl(city, dateStr) {
   var originCity = S.home ? S.home.split(',')[0].trim() : 'Calgary';
   var originIATA = getCityIATA(originCity);
   var destIATA   = getCityIATA(city);
   var base = 'https://www.skyscanner.net/g/referrals/v1/flights/day-view/';
   var params = '?origin=' + originIATA + '&destination=' + destIATA;
-  if (dateStr) params += '&outboundDate=' + dateStr;
+  if (dateStr) params += '&outboundDate=' + getFridayOf(dateStr);
   params += '&adults=1&cabinclass=economy&market=CA&locale=en-CA&currency=CAD';
   return base + params;
 }
@@ -953,7 +982,7 @@ function runMatches(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function fmt(d){return d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});}
+function fmt(d){return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
 function fmtY(d){return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
 
 function buildCard(w){
