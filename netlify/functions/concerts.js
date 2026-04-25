@@ -109,19 +109,23 @@ export default async (req, context) => {
 
     // ── POST-FILTERS ─────────────────────────────────────────────────────────
     // 1. Drop tribute/cover acts for artist searches
-    const TRIBUTE_WORDS = ['tribute', 'salute to', 'experience', 'vs.', 'presents',
+    const TRIBUTE_WORDS = [
+      'tribute', 'salute to', 'experience', 'vs.', 'presents',
       'a night of', 'the music of', 'performs ', 'legacy', 'symphony', 'orchestral',
-      'featuring songs of', 'celebration of', 'dance night'];
+      'featuring songs of', 'celebration of', 'dance night',
+      'ticket + hotel', 'hotel deal', 'hotel package', 'vip package',
+      'allstars', 'all stars', 'all-stars', 'best of the', 'greatest hits of',
+      'featuring ', 'punk brunch', 'feat.', 'ft.', 'vs ',
+    ];
     const filteredEvents = events.filter(ev => {
       const nameLower = ev.name.toLowerCase();
       const artistLower = (ev.artist || '').toLowerCase();
       // For artist searches: drop if name contains tribute words
       if (artist) {
         if (TRIBUTE_WORDS.some(w => nameLower.includes(w) || artistLower.includes(w))) return false;
-        // Drop if artist name doesn't loosely match the search term
+        // Require the full artist name to appear in event name or attraction name
         const searchLower = artist.toLowerCase();
-        const searchWords = searchLower.split(/\s+/).filter(w => w.length > 2);
-        const nameMatch = searchWords.some(w => nameLower.includes(w) || artistLower.includes(w));
+        const nameMatch = nameLower.includes(searchLower) || artistLower.includes(searchLower);
         if (!nameMatch) return false;
       }
       // For team searches: use subgenre to filter out wrong-league teams
