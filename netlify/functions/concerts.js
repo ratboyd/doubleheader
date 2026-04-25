@@ -128,9 +128,17 @@ export default async (req, context) => {
           'allstars', 'all stars', 'all-stars', 'best of the', 'greatest hits of',
           'punk brunch', 'vs ', 'vs.'];
         if (ARTIST_TRIBUTE.some(w => nameLower.includes(w))) return false;
-        // Require artist name in attraction name (most reliable) OR event name
+        // Require artist name match — attraction must start with or equal search term
+        // (prevents "The Long Run: Experience the Eagles" matching "Eagles")
         const searchLower = artist.toLowerCase();
-        if (!artistLower.includes(searchLower) && !nameLower.includes(searchLower)) return false;
+        const attractionMatch = artistLower === searchLower ||
+          artistLower.startsWith(searchLower) ||
+          artistLower.startsWith('the ' + searchLower);
+        const nameExact = nameLower.startsWith(searchLower) || nameLower.includes(': ' + searchLower);
+        if (!attractionMatch && !nameExact) return false;
+        // Also drop if attraction name contains tribute indicators
+        const TRIBUTE_ATTRACTION = ['experience', 'tribute', 'salute', 'legacy', 'allstar', 'all star'];
+        if (!attractionMatch && TRIBUTE_ATTRACTION.some(w => artistLower.includes(w))) return false;
       }
       // For team searches: use subgenre to filter out wrong-league teams
       // e.g. "Dallas Stars" (NHL) vs "Texas Stars" (AHL)
