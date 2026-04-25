@@ -191,6 +191,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .any-city-row{margin-top:10px;}
 .any-city-label{display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;cursor:pointer;}
 .any-city-label input{accent-color:#d4a843;cursor:pointer;}
+.anywhere-pill{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;letter-spacing:.5px;background:#d4a84333;color:#d4a843;border:1px solid #d4a84366;vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -288,7 +289,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
       <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches →</button>
 
-      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
+      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
     </div>
   </aside>
 
@@ -950,6 +951,13 @@ function runMatches(){
     });
   }
   windows.sort(function(a,b){return b.score-a.score||a.start-b.start;});
+  if(S.anyCity){
+    var cityCounts={};windows.forEach(function(w){cityCounts[w.city]=(cityCounts[w.city]||0)+w.events.length;});
+    var top20=Object.keys(cityCounts).sort(function(a,b){return cityCounts[b]-cityCounts[a];}).slice(0,20);
+    windows=windows.filter(function(w){return top20.indexOf(w.city)>-1;});
+    var savedCities=S.cities.map(function(c){return c.toLowerCase();});
+    windows.forEach(function(w){w.isAnyCity=savedCities.indexOf(w.city.toLowerCase())===-1;});
+  }
   cached=windows;
 
   // Stats
@@ -1116,11 +1124,12 @@ function sortMatches(val){
   else s.sort(function(a,b){return b.score-a.score;});
   renderGrid(s);
 }
+function updateAnyCityVisibility(){var row=document.getElementById('anyCityRow');if(row)row.style.display=(S.dateStart||S.dateEnd)?'block':'none';}
 function clearDateFilter(){S.dateStart=null;S.dateEnd=null;document.getElementById('dateFrom').value='';document.getElementById('dateTo').value='';document.getElementById('dateToggle').textContent='Any dates';document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});}
 function onAnyCityToggle(){S.anyCity=document.getElementById('anyCityCheck').checked;}
 function toggleDateFilter(){var panel=document.getElementById('datePanel');var btn=document.getElementById('dateToggle');var open=panel.style.display==='none';panel.style.display=open?'block':'none';btn.classList.toggle('open',open);}
-function setDatePreset(preset){var today=new Date();var from,to;if(preset==='month'){from=new Date(today.getFullYear(),today.getMonth(),1);to=new Date(today.getFullYear(),today.getMonth()+1,0);}else{var days=parseInt(preset);from=today;to=new Date(today);to.setDate(today.getDate()+days);}var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(from);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;document.getElementById('dateToggle').textContent=S.dateStart+' to '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');}
-function onCustomDate(){S.dateStart=document.getElementById('dateFrom').value||null;S.dateEnd=document.getElementById('dateTo').value||null;var label=(S.dateStart||S.dateEnd)?(S.dateStart||'...')+' to '+(S.dateEnd||'...'):'Any dates';document.getElementById('dateToggle').textContent=label;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});}
+function setDatePreset(preset){var today=new Date();var from,to;if(preset==='month'){from=new Date(today.getFullYear(),today.getMonth(),1);to=new Date(today.getFullYear(),today.getMonth()+1,0);}else{var days=parseInt(preset);from=today;to=new Date(today);to.setDate(today.getDate()+days);}var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(from);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;document.getElementById('dateToggle').textContent=S.dateStart+' to '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');updateAnyCityVisibility();}
+function onCustomDate(){S.dateStart=document.getElementById('dateFrom').value||null;S.dateEnd=document.getElementById('dateTo').value||null;var label=(S.dateStart||S.dateEnd)?(S.dateStart||'...')+' to '+(S.dateEnd||'...'):'Any dates';document.getElementById('dateToggle').textContent=label;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});updateAnyCityVisibility();}
 
 function clearAll(){
   S.cities=[];S.artists=[];S.teams=[];S.genres=[];S.leagues=[];S.home='';
