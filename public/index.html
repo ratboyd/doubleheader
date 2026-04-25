@@ -1043,7 +1043,7 @@ function buildCard(w){
     return '<div class="mevent '+typeClass+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+broadTag+subNote+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dLabel+'</div>'+ticketLink+'</div>';
   }).join('');
 
-  return '<div class="mcard '+tier+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+'</div><div class="mcard-dates">'+dateStr+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+w.score+'</div><div class="score-lbl">score</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot">'+flightHtml+'<div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
+  return '<div class="mcard '+tier+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+(w.isAnyCity?'<span class="anywhere-pill">Anywhere</span>':'')+'</div><div class="mcard-dates">'+dateStr+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+w.score+'</div><div class="score-lbl">score</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot">'+flightHtml+'<div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
 }
 
 function renderGrid(wins){
