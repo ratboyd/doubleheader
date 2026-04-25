@@ -124,13 +124,20 @@ export default async (req, context) => {
         const nameMatch = searchWords.some(w => nameLower.includes(w) || artistLower.includes(w));
         if (!nameMatch) return false;
       }
-      // For team searches: require the team name to appear in the event name
+      // For team searches: use subgenre to filter out wrong-league teams
+      // e.g. "Dallas Stars" (NHL) vs "Texas Stars" (AHL)
       if (team) {
         const teamLower = team.toLowerCase();
-        // All words of team name must appear in event name (handles "Dallas Stars" vs "Texas Stars")
-        const teamWords = teamLower.split(/\s+/).filter(w => w.length > 2);
-        const allMatch = teamWords.every(w => nameLower.includes(w));
-        if (!allMatch) return false;
+        const subgenreLower = (ev.subgenre || '').toLowerCase();
+        // Known minor/wrong league subgenres to reject for major-league searches
+        const MINOR_LEAGUES = ['ahl', 'echl', 'chl', 'ohl', 'whl', 'qmjhl', 'nll',
+          'nba g league', 'usl', 'usl championship', 'usl league one', 'nwsl'];
+        if (MINOR_LEAGUES.some(ml => subgenreLower.includes(ml))) return false;
+        // Also drop if ALL words of the team name don't appear in name or subgenre
+        const teamWords = teamLower.split(/\s+/).filter(w => w.length > 3);
+        // At least one key word must match (e.g. "Stars" in "Dallas Stars")
+        const lastWord = teamWords[teamWords.length - 1];
+        if (lastWord && !nameLower.includes(lastWord) && !subgenreLower.includes(lastWord)) return false;
       }
       return true;
     });
