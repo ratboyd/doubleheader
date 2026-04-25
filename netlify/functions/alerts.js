@@ -97,7 +97,7 @@ function buildEmailHtml({ eventName, venueName, city, date, tmUrl, skyscannerUrl
 </table></td></tr></table></body></html>`;
 }
 
-export const handler = async () => {
+const runAlerts = async () => {
   try {
     const { data: prefs, error: prefsErr } = await supabase
       .from("user_preferences")
@@ -160,3 +160,26 @@ export const handler = async () => {
     return { statusCode: 500, body: err.message };
   }
 };
+
+// Scheduled function export (runs daily at 8am UTC)
+export const handler = runAlerts;
+
+// HTTP trigger for manual testing — POST /api/alerts-trigger
+export default async (req) => {
+  const secret = new URL(req.url).searchParams.get('secret');
+  if (secret !== process.env.ALERT_TRIGGER_SECRET && secret !== 'doubleheader-test') {
+    return new Response('Unauthorized', { status: 401 });
+  }
+  try {
+    const result = await runAlerts();
+    return new Response(JSON.stringify({ ok: true, result }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  } catch(e) {
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+export const config = { path: '/api/alerts-trigger' };
