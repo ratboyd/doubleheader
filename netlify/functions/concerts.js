@@ -107,8 +107,37 @@ export default async (req, context) => {
       };
     });
 
+    // ── POST-FILTERS ─────────────────────────────────────────────────────────
+    // 1. Drop tribute/cover acts for artist searches
+    const TRIBUTE_WORDS = ['tribute', 'salute to', 'experience', 'vs.', 'presents',
+      'a night of', 'the music of', 'performs ', 'legacy', 'symphony', 'orchestral',
+      'featuring songs of', 'celebration of', 'dance night'];
+    const filteredEvents = events.filter(ev => {
+      const nameLower = ev.name.toLowerCase();
+      const artistLower = (ev.artist || '').toLowerCase();
+      // For artist searches: drop if name contains tribute words
+      if (artist) {
+        if (TRIBUTE_WORDS.some(w => nameLower.includes(w) || artistLower.includes(w))) return false;
+        // Drop if artist name doesn't loosely match the search term
+        const searchLower = artist.toLowerCase();
+        const searchWords = searchLower.split(/\s+/).filter(w => w.length > 2);
+        const nameMatch = searchWords.some(w => nameLower.includes(w) || artistLower.includes(w));
+        if (!nameMatch) return false;
+      }
+      // For team searches: require the team name to appear in the event name
+      if (team) {
+        const teamLower = team.toLowerCase();
+        // All words of team name must appear in event name (handles "Dallas Stars" vs "Texas Stars")
+        const teamWords = teamLower.split(/\s+/).filter(w => w.length > 2);
+        const allMatch = teamWords.every(w => nameLower.includes(w));
+        if (!allMatch) return false;
+      }
+      return true;
+    });
+
+
     return new Response(JSON.stringify({
-      events, total: data.page?.totalElements || 0, pages: data.page?.totalPages || 1,
+      events: filteredEvents, total: filteredEvents.length, pages: data.page?.totalPages || 1,
     }), {
       status: 200,
       headers: { "Content-Type":"application/json","Cache-Control":"public, max-age=3600","Access-Control-Allow-Origin":"*" }
