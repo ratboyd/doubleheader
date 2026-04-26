@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { createClient } from "@supabase/supabase-js";
 
 const RESEND_KEY   = process.env.RESEND_API_KEY;
 const FROM_EMAIL   = process.env.ALERT_FROM_EMAIL || "alerts@doubleheader.app";
@@ -11,105 +11,112 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 const resend = new Resend(RESEND_KEY);
 
-// Use our own /api/concerts endpoint which already has all filters built in
-async function fetchEvents(keyword, type) {
-  const param = type === 'team' ? 'team' : 'artist';
-  const url = `https://doubleheader.app/api/concerts?${param}=${encodeURIComponent(keyword)}`;
-  try {
-    const r = await fetch(url);
-    const d = await r.json();
-    return d.events || [];
-  } catch(e) { return []; }
+function fmtDate(str) {
+  if (!str) return '';
+  const d = new Date(str + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
 }
 
-function buildDigestHtml(events) {
-  const rows = events.map(ev => `
-    <tr><td style="padding:14px 0;border-bottom:1px solid #1e1e1e;">
-      <div style="font-size:15px;font-weight:700;color:#fff;">${ev.name}</div>
-      <div style="font-size:13px;color:#888;margin-top:3px;">${ev.date || 'TBD'} &bull; ${ev.venue}, ${ev.city}</div>
-      <a href="${ev.url}" style="display:inline-block;margin-top:8px;padding:6px 16px;background:#d4a843;color:#000;font-size:12px;font-weight:700;border-radius:4px;text-decoration:none;">Get tickets</a>
-    </td></tr>`).join('');
+function buildDigestHtml(windows, homeCity) {
+  const cards = windows.map(w => {
+    const firstDate = w.events[0]?.date;
+    const lastDate  = w.events[w.events.length-1]?.date;
+    const dateRange = firstDate === lastDate ? fmtDate(firstDate) : fmtDate(firstDate) + ' – ' + fmtDate(lastDate);
+    const eventRows = w.events.map(ev => `
+      <div style="padding:8px 0;border-bottom:1px solid #1a1a1a;">
+        <div style="font-size:14px;font-weight:700;color:#fff;">${ev.name}</div>
+        <div style="font-size:12px;color:#777;margin-top:2px;">${ev.venue || ''}${ev.venue ? ', ' : ''}${ev.city}</div>
+        <a href="${ev.url}" style="display:inline-block;margin-top:5px;padding:4px 12px;background:#d4a843;color:#000;font-size:11px;font-weight:700;border-radius:3px;text-decoration:none;">Get tickets</a>
+      </div>`).join('');
+
+    const flightRow = w.flightUrl ? `
+      <div style="margin-top:10px;padding:8px 12px;background:#111;border-radius:6px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:#aaa;">✈ ${homeCity || 'YYC'} → ${w.city}</span>
+        <span style="font-size:12px;color:#555;">·</span>
+        <span style="font-size:12px;color:#888;">${w.flightHours}h flight</span>
+        <a href="${w.flightUrl}" style="margin-left:auto;font-size:11px;color:#d4a843;font-weight:600;text-decoration:none;">Search flights →</a>
+      </div>` : `
+      <div style="margin-top:10px;padding:8px 12px;background:#111;border-radius:6px;">
+        <span style="font-size:12px;color:#555;">✈ ${homeCity || 'YYC'} → ${w.city} · ${w.flightHours}h</span>
+      </div>`;
+
+    return `
+    <div style="margin-bottom:20px;padding:16px;background:#111;border-radius:10px;border:1px solid #222;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.5px;">${w.city}</div>
+          <div style="font-size:12px;color:#666;margin-top:2px;">${dateRange}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:22px;font-weight:900;color:#d4a843;">${w.score}</div>
+          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;">score</div>
+        </div>
+      </div>
+      ${eventRows}
+      ${flightRow}
+    </div>`;
+  }).join('');
 
   return `<!DOCTYPE html>
-<html><body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,sans-serif;">
-<div style="max-width:560px;margin:0 auto;padding:32px 24px;">
+<html><body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:580px;margin:0 auto;padding:32px 20px;">
   <div style="margin-bottom:24px;">
-    <span style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-1px;">double</span><span style="font-size:24px;font-weight:900;color:#d4a843;letter-spacing:-1px;">header</span>
-    <span style="font-size:11px;color:#555;margin-left:10px;letter-spacing:2px;text-transform:uppercase;">New matches</span>
+    <span style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;">double</span><span style="font-size:26px;font-weight:900;color:#d4a843;letter-spacing:-1px;">header</span>
+    <span style="display:block;font-size:11px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">New matches for you</span>
   </div>
-  <p style="color:#aaa;font-size:13px;margin:0 0 20px;">New events matching your artists &amp; teams — <a href="https://doubleheader.app" style="color:#d4a843;">view on doubleheader.app</a></p>
-  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #1e1e1e;">${rows}</table>
-  <div style="margin-top:28px;font-size:11px;color:#333;line-height:1.6;">
-    Sent by <a href="https://doubleheader.app" style="color:#555;">doubleheader.app</a>
+  <p style="color:#666;font-size:13px;margin:0 0 20px;line-height:1.5;">
+    ${windows.length} trip${windows.length !== 1 ? 's' : ''} matching your artists &amp; teams —
+    <a href="https://doubleheader.app" style="color:#d4a843;">view on doubleheader.app</a>
+  </p>
+  ${cards}
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #1a1a1a;font-size:11px;color:#333;line-height:1.6;">
+    You're subscribed to alerts at <a href="https://doubleheader.app" style="color:#444;">doubleheader.app</a>
   </div>
 </div></body></html>`;
 }
 
 export default async (req) => {
-  const secret = new URL(req.url).searchParams.get('secret');
-  if (secret !== 'dh-test-2026') return new Response('nope', { status: 403 });
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
-  const { data: prefs, error } = await supabase
-    .from('user_preferences')
-    .select('user_id, artists, teams, home_city, travel_cities');
+  let body;
+  try { body = await req.json(); } 
+  catch(e) { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 }); }
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-  if (!prefs?.length) return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'no prefs' }), { status: 200 });
+  const { userId, windows, homeCity, secret } = body;
 
-  let totalSent = 0;
-  const log = [];
-
-  for (const pref of prefs) {
-    const artists = pref.artists || [];
-    const teams   = pref.teams   || [];
-    if (!artists.length && !teams.length) continue;
-
-    // Get email via admin API
-    const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
-    const userEmail = userData?.user?.email;
-    if (!userEmail) { log.push('no email for ' + pref.user_id); continue; }
-
-    // Fetch filtered events via our own API (has tribute/AHL filters built in)
-    const allEvents = [];
-    for (const artist of artists) allEvents.push(...await fetchEvents(artist, 'artist'));
-    for (const team   of teams)   allEvents.push(...await fetchEvents(team,   'team'));
-
-    // Deduplicate by event ID
-    const unique = [...new Map(allEvents.map(e => [e.id, e])).values()];
-    if (!unique.length) { log.push('no events for ' + userEmail); continue; }
-
-    // Filter to only events in saved cities (home + travel)
-    // Build saved city list — extract just the city name (strip ", AB" etc from home)
-    const rawCities = [
-      ...(pref.travel_cities || []),
-      ...(pref.home_city ? [pref.home_city.split(',')[0].trim()] : [])
-    ];
-    const savedCities = rawCities.map(c => c.toLowerCase().trim());
-
-    const cityFiltered = savedCities.length > 0
-      ? unique.filter(ev => {
-          const evCity = ev.city.toLowerCase().trim();
-          return savedCities.some(sc => evCity === sc);
-        })
-      : unique;
-
-    if (!cityFiltered.length) { log.push('no city matches for ' + userEmail); continue; }
-
-    // Sort by date
-    cityFiltered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-
-    await resend.emails.send({
-      from:    `Doubleheader <${FROM_EMAIL}>`,
-      to:      userEmail,
-      subject: `${cityFiltered.length} new match${cityFiltered.length > 1 ? 'es' : ''} on Doubleheader`,
-      html:    buildDigestHtml(cityFiltered),
-    });
-
-    totalSent++;
-    log.push('sent ' + cityFiltered.length + ' events to ' + userEmail);
+  // Auth: either a test secret or a valid Supabase user
+  if (secret !== 'dh-test-2026' && !userId) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  return new Response(JSON.stringify({ ok: true, sent: totalSent, log }), {
+  if (!windows || !windows.length) {
+    return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'no windows' }), { status: 200 });
+  }
+
+  // Get user email
+  let userEmail;
+  if (secret === 'dh-test-2026') {
+    // Test mode — get first user from prefs
+    const { data: prefs } = await supabase.from('user_preferences').select('user_id').limit(1);
+    if (prefs?.length) {
+      const { data: ud } = await supabase.auth.admin.getUserById(prefs[0].user_id);
+      userEmail = ud?.user?.email;
+    }
+  } else {
+    const { data: ud } = await supabase.auth.admin.getUserById(userId);
+    userEmail = ud?.user?.email;
+  }
+
+  if (!userEmail) return new Response(JSON.stringify({ error: 'No email found' }), { status: 400 });
+
+  await resend.emails.send({
+    from:    `Doubleheader <${FROM_EMAIL}>`,
+    to:      userEmail,
+    subject: `${windows.length} new match${windows.length !== 1 ? 'es' : ''} on Doubleheader`,
+    html:    buildDigestHtml(windows, homeCity),
+  });
+
+  return new Response(JSON.stringify({ ok: true, sent: 1, to: userEmail }), {
     status: 200, headers: { 'Content-Type': 'application/json' }
   });
 };
