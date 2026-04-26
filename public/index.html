@@ -1131,7 +1131,11 @@ function toggleDateFilter(){var panel=document.getElementById('datePanel');var b
 function setDatePreset(preset){var today=new Date();var from,to;if(preset==='month'){from=new Date(today.getFullYear(),today.getMonth(),1);to=new Date(today.getFullYear(),today.getMonth()+1,0);}else{var days=parseInt(preset);from=today;to=new Date(today);to.setDate(today.getDate()+days);}var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(from);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;document.getElementById('dateToggle').textContent=S.dateStart+' to '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');updateAnyCityVisibility();}
 function onCustomDate(){S.dateStart=document.getElementById('dateFrom').value||null;S.dateEnd=document.getElementById('dateTo').value||null;var label=(S.dateStart||S.dateEnd)?(S.dateStart||'...')+' to '+(S.dateEnd||'...'):'Any dates';document.getElementById('dateToggle').textContent=label;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});updateAnyCityVisibility();}
 
-function emailMyMatches(userId, secret) {
+async function emailMyMatches(userId, secret) {
+  if (!userId && !secret) {
+    // Get current logged-in user ID
+    try { const u = await getUser(); userId = u && u.id ? u.id : null; } catch(e) {}
+  }
   if (!cached || !cached.length) return;
   var windows = cached.map(function(w) {
     var firstDate = w.events[0] ? w.events[0].date : '';
