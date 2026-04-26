@@ -51,7 +51,7 @@ export default async (req) => {
 
   const { data: prefs, error } = await supabase
     .from('user_preferences')
-    .select('user_id, artists, teams');
+    .select('user_id, artists, teams, home_city, travel_cities');
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   if (!prefs?.length) return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'no prefs' }), { status: 200 });
@@ -78,18 +78,30 @@ export default async (req) => {
     const unique = [...new Map(allEvents.map(e => [e.id, e])).values()];
     if (!unique.length) { log.push('no events for ' + userEmail); continue; }
 
+    // Filter to only events in saved cities (home + travel)
+    const savedCities = [
+      ...(pref.travel_cities || []),
+      ...(pref.home_city ? [pref.home_city] : [])
+    ].map(c => c.toLowerCase());
+
+    const cityFiltered = savedCities.length > 0
+      ? unique.filter(ev => savedCities.some(sc => ev.city.toLowerCase().includes(sc) || sc.includes(ev.city.toLowerCase())))
+      : unique;
+
+    if (!cityFiltered.length) { log.push('no city matches for ' + userEmail); continue; }
+
     // Sort by date
-    unique.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    cityFiltered.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
     await resend.emails.send({
       from:    `Doubleheader <${FROM_EMAIL}>`,
       to:      userEmail,
-      subject: `${unique.length} new match${unique.length > 1 ? 'es' : ''} on Doubleheader`,
-      html:    buildDigestHtml(unique),
+      subject: `${cityFiltered.length} new match${cityFiltered.length > 1 ? 'es' : ''} on Doubleheader`,
+      html:    buildDigestHtml(cityFiltered),
     });
 
     totalSent++;
-    log.push('sent ' + unique.length + ' events to ' + userEmail);
+    log.push('sent ' + cityFiltered.length + ' events to ' + userEmail);
   }
 
   return new Response(JSON.stringify({ ok: true, sent: totalSent, log }), {
