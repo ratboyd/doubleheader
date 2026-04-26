@@ -965,7 +965,7 @@ function runMatches(){
   var trips=windows.filter(function(w){return w.primaryHits>=2;}).length;
   var ucits=[...new Set(windows.map(function(w){return w.city;}))].length;
   document.getElementById('statsRow').innerHTML=
-    '<div class="stat"><div class="stat-num">'+windows.length+'</div><div class="stat-label">matching weekends</div></div>'+
+    '<div class="stat"><div class="stat-num">'+windows.length+'</div><div class="stat-label">matching trips</div></div>'+
     '<div class="stat"><div class="stat-num">'+totalH+'</div><div class="stat-label">primary overlaps</div></div>'+
     '<div class="stat"><div class="stat-num">'+trips+'</div><div class="stat-label">doubleheaders+</div></div>'+
     '<div class="stat"><div class="stat-num">'+ucits+'</div><div class="stat-label">cities in play</div></div>';
