@@ -906,14 +906,14 @@ function runMatches(){
     var d=new Date(e.date+'T12:00:00');
     var dow=d.getDay();
     var daysToMon=dow===0?6:dow-1;
-    var ws=new Date(d);ws.setDate(d.getDate()-daysToMon);
-    var key=e.city+'|'+ws.toDateString();
+    var ws=new Date(e.date+'T12:00:00');
+    var key=e.city+'|'+e.date;
     if(!byWin[key])byWin[key]={city:e.city,start:ws,events:[],nameSeen:{},firstDate:d,lastDate:d};
     var w=byWin[key];
     if(d<w.firstDate)w.firstDate=d;
     if(d>w.lastDate)w.lastDate=d;
     // Deduplicate by name — keep higher weight version
-    var nk=e.name.toLowerCase();
+    var nk=e.name.toLowerCase()+'|'+e.date;
     if(!w.nameSeen[nk]||e.weight>w.nameSeen[nk].weight){
       if(w.nameSeen[nk]){
         w.events=w.events.filter(function(ev){return ev.name.toLowerCase()!==nk;});
@@ -928,9 +928,9 @@ function runMatches(){
     var w=byWin[k];
     // Score: weighted sum of unique acts
     var weightedScore=w.events.reduce(function(s,e){return s+(e.weight||1.0);},0);
-    var primaryHits=w.events.filter(function(e){return !e.broadMatch;}).length;
+    var primaryHits=new Set(w.events.filter(function(e){return !e.broadMatch;}).map(function(e){return e.artist||e.name;})).size;
     var broadHits=w.events.filter(function(e){return e.broadMatch;}).length;
-    var artistHits=w.events.filter(function(e){return e.type==='artist'&&!e.broadMatch;}).length;
+    var artistHits=new Set(w.events.filter(function(e){return e.type==='artist'&&!e.broadMatch;}).map(function(e){return e.artist||e.name;})).size;
     var teamHits=w.events.filter(function(e){return e.type==='team'&&!e.broadMatch;}).length;
 
     var score=Math.round(weightedScore*30);
@@ -987,7 +987,7 @@ function runMatches(){
   }
   document.getElementById('noticeArea').innerHTML=notices.join('');
 
-  document.getElementById('matchTitle').textContent=windows.length===0?'No matches yet':windows.length+' weekend'+(windows.length!==1?'s':'')+' found';
+  document.getElementById('matchTitle').textContent=windows.length===0?'No matches yet':windows.length+' match'+(windows.length!==1?'es':'')+' found';
   document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength — doubleheaders first. Dashed borders = broad interest matches.':'Add cities and artists/teams, then click Find matches.';
   document.getElementById('resultsState').style.display='block';
 
