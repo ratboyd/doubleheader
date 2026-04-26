@@ -79,13 +79,18 @@ export default async (req) => {
     if (!unique.length) { log.push('no events for ' + userEmail); continue; }
 
     // Filter to only events in saved cities (home + travel)
-    const savedCities = [
+    // Build saved city list — extract just the city name (strip ", AB" etc from home)
+    const rawCities = [
       ...(pref.travel_cities || []),
-      ...(pref.home_city ? [pref.home_city] : [])
-    ].map(c => c.toLowerCase());
+      ...(pref.home_city ? [pref.home_city.split(',')[0].trim()] : [])
+    ];
+    const savedCities = rawCities.map(c => c.toLowerCase().trim());
 
     const cityFiltered = savedCities.length > 0
-      ? unique.filter(ev => savedCities.some(sc => ev.city.toLowerCase().includes(sc) || sc.includes(ev.city.toLowerCase())))
+      ? unique.filter(ev => {
+          const evCity = ev.city.toLowerCase().trim();
+          return savedCities.some(sc => evCity === sc);
+        })
       : unique;
 
     if (!cityFiltered.length) { log.push('no city matches for ' + userEmail); continue; }
