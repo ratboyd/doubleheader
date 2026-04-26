@@ -907,7 +907,7 @@ function runMatches(){
     var dow=d.getDay();
     var daysToMon=dow===0?6:dow-1;
     var ws=new Date(e.date+'T12:00:00');
-    var key=e.city+'|'+e.date;
+    var artistKey=(e.artist||e.name||'').toLowerCase().split('|')[0].trim();var key=e.city+'|'+artistKey+'|'+e.date;
     if(!byWin[key])byWin[key]={city:e.city,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
     var w=byWin[key];
     if(d<w.firstDate)w.firstDate=d;
@@ -923,7 +923,30 @@ function runMatches(){
     }
   });
 
-  var windows=[];
+  
+  // Merge consecutive same-artist windows in same city (within 2 days = residency / back-to-back)
+  var mergedByWin = {};
+  Object.values(byWin).sort(function(a,b){return a.start-b.start;}).forEach(function(w) {
+    var artistName = w.events[0] ? (w.events[0].artist||w.events[0].name) : '';
+    var mergeKey = w.city + '|' + artistName.toLowerCase();
+    if (mergedByWin[mergeKey]) {
+      var existing = mergedByWin[mergeKey];
+      var lastDate = new Date(existing.lastDate + 'T12:00:00');
+      var thisDate = new Date(w.start);
+      var daysDiff = (thisDate - lastDate) / 86400000;
+      if (daysDiff <= 2) {
+        // Merge into existing window
+        w.events.forEach(function(e) { existing.events.push(e); });
+        if (w.lastDate > existing.lastDate) existing.lastDate = w.lastDate;
+        return;
+      }
+    }
+    // New window (or gap too big — start fresh)
+    mergedByWin[mergeKey + '|' + w.start] = JSON.parse(JSON.stringify(w));
+    mergedByWin[mergeKey + '|' + w.start].lastDate = w.start;
+  });
+  byWin = mergedByWin;
+var windows=[];
   for(var k in byWin){
     var w=byWin[k];
     // Score: weighted sum of unique acts
