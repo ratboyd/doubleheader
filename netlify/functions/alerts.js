@@ -108,7 +108,8 @@ const runAlerts = async () => {
     // Send ONE digest email
     try {
       await resend.emails.send({
-        from: FROM_EMAIL,
+        from: `Doubleheader <${FROM_EMAIL}>`,
+        replyTo: FROM_EMAIL,
         to: userEmail,
         subject: `${unique.length} new event${unique.length > 1 ? 's' : ''} matching your Doubleheader picks`,
         html: buildDigestHtml(userEmail, unique),
@@ -131,3 +132,21 @@ const runAlerts = async () => {
 
 // Scheduled function (runs daily at 8am UTC)
 export const handler = runAlerts;
+
+// Temporary HTTP test trigger — remove after testing
+export default async (req) => {
+  const url = new URL(req.url);
+  const secret = url.searchParams.get('secret');
+  if (secret !== 'dh-test-2026') return new Response('nope', { status: 403 });
+  try {
+    const result = await runAlerts();
+    return new Response(JSON.stringify({ ok: true, result }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  } catch(e) {
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+export const config = { path: '/api/dh-test-trigger' };
