@@ -22,4 +22,4 @@
     X-Content-Type-Options = "nosniff"
 
 [functions."alerts"]
-  schedule = "0 8 * * *"
+  schedule = "20 18 * * *"
