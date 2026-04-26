@@ -1035,8 +1035,8 @@ function runMatches(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function fmt(d){return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-function fmtY(d){return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
+function fmt(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+function fmtY(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
 
 function buildCard(w){
   var primaryHits=w.primaryHits||w.events.filter(function(e){return !e.broadMatch;}).length;
