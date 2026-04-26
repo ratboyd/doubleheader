@@ -93,6 +93,28 @@ export default async (req) => {
     return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'no windows' }), { status: 200 });
   }
 
+  // For non-test calls: filter to only unseen events
+  let filteredWindows = windows;
+  if (userId && userId !== 'test') {
+    const { data: seen } = await supabase
+      .from('seen_events')
+      .select('event_id')
+      .eq('user_id', userId);
+    const seenIds = new Set((seen || []).map(r => r.event_id));
+
+    filteredWindows = windows.map(w => ({
+      ...w,
+      events: w.events.filter(e => {
+        const eid = e.url || (e.name + '|' + e.date + '|' + e.city);
+        return !seenIds.has(eid);
+      })
+    })).filter(w => w.events.length > 0);
+
+    if (!filteredWindows.length) {
+      return new Response(JSON.stringify({ ok: true, sent: 0, reason: 'no new events' }), { status: 200 });
+    }
+  }
+
   // Get user email
   let userEmail;
   if (secret === 'dh-test-2026') {
@@ -112,9 +134,21 @@ export default async (req) => {
   await resend.emails.send({
     from:    `Doubleheader <${FROM_EMAIL}>`,
     to:      userEmail,
-    subject: `${windows.length} new match${windows.length !== 1 ? 'es' : ''} on Doubleheader`,
-    html:    buildDigestHtml(windows, homeCity),
+    subject: `${filteredWindows.length} new match${filteredWindows.length !== 1 ? 'es' : ''} on Doubleheader`,
+    html:    buildDigestHtml(filteredWindows, homeCity),
   });
+
+  // Mark events as seen so we don't email them again
+  if (userId && userId !== 'test') {
+    const eventIds = filteredWindows.flatMap(w => w.events.map(e => ({
+      user_id: userId,
+      event_id: e.url || (e.name + '|' + e.date + '|' + e.city),
+      alerted_at: new Date().toISOString()
+    })));
+    if (eventIds.length) {
+      await supabase.from('seen_events').upsert(eventIds, { onConflict: 'user_id,event_id' });
+    }
+  }
 
   return new Response(JSON.stringify({ ok: true, sent: 1, to: userEmail }), {
     status: 200, headers: { 'Content-Type': 'application/json' }
