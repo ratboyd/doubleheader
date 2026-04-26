@@ -948,6 +948,48 @@ function runMatches(){
       uniqueHits:w.events.length,fh:fh
     });
   }
+
+  // Split windows where same-artist events have >1 day gap (e.g. Stars Game 3 vs Game 4)
+  var splitWindows = [];
+  windows.forEach(function(w) {
+    // Group events by artist
+    var byArtist = {};
+    w.events.forEach(function(e) {
+      var ak = (e.artist||e.name||'').toLowerCase();
+      if (!byArtist[ak]) byArtist[ak] = [];
+      byArtist[ak].push(e);
+    });
+
+    // Check if any single artist has events with >1 day gap
+    var needsSplit = Object.values(byArtist).some(function(evs) {
+      evs.sort(function(a,b){return a.date.localeCompare(b.date);});
+      for (var i=1; i<evs.length; i++) {
+        var gap = (new Date(evs[i].date+'T12:00:00') - new Date(evs[i-1].date+'T12:00:00'))/86400000;
+        if (gap > 1) return true;
+      }
+      return false;
+    });
+
+    if (!needsSplit) { splitWindows.push(w); return; }
+
+    // Split: each "run" of consecutive dates (gap ≤1 day) becomes its own window
+    var allEvents = w.events.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
+    var runs = [[allEvents[0]]];
+    for (var i=1; i<allEvents.length; i++) {
+      var gap = (new Date(allEvents[i].date+'T12:00:00') - new Date(allEvents[i-1].date+'T12:00:00'))/86400000;
+      if (gap <= 1) { runs[runs.length-1].push(allEvents[i]); }
+      else { runs.push([allEvents[i]]); }
+    }
+    runs.forEach(function(run) {
+      var wCopy = JSON.parse(JSON.stringify(w));
+      wCopy.events = run;
+      wCopy.start = run[0].date;
+      wCopy.firstDate = new Date(run[0].date+'T12:00:00');
+      wCopy.lastDate  = new Date(run[run.length-1].date+'T12:00:00');
+      splitWindows.push(wCopy);
+    });
+  });
+  windows = splitWindows;
   windows.sort(function(a,b){return b.score-a.score||a.start-b.start;});
   if(S.anyCity){
     var cityCounts={};windows.forEach(function(w){cityCounts[w.city]=(cityCounts[w.city]||0)+w.events.length;});
