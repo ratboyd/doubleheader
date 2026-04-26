@@ -883,10 +883,10 @@ function setNavStatus(state,msg){ var el=document.getElementById('navStatus');el
 // ── MATCHING ENGINE ───────────────────────────────────────────────────────────
 function runMatches(){
   var today=new Date().toISOString().split('T')[0];
-  var uc=S.cities.map(function(c){return c.toLowerCase();});
-  var ua=S.artists.map(function(a){return a.toLowerCase();});
-  var ut=S.teams.map(function(t){return t.toLowerCase();});
-  var homeCityLower=S.home?S.home.toLowerCase().split(',')[0].trim():'';
+  var uc=S.cities.map(function(c){return (c.name||c).toLowerCase();});
+  var ua=S.artists.map(function(a){return (a.name||a).toLowerCase();});
+  var ut=S.teams.map(function(t){return (t.name||t).toLowerCase();});
+  var homeCityLower=S.home?(S.home.name||S.home).toLowerCase().split(',')[0].trim():'';
 
   var matched=LIVE_EVENTS.filter(function(e){
     if(!e.date||e.date<today)return false;
