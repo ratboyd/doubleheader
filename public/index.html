@@ -902,12 +902,9 @@ function runMatches(){
 
   // Group into Mon-Sun windows
   var byWin={};
-  matched.forEach(function(e){
+  var runTracker={};matched.sort(function(a,b){return (a.city+a.artist+a.date).localeCompare(b.city+b.artist+b.date);});matched.forEach(function(e){
     var d=new Date(e.date+'T12:00:00');
-    var dow=d.getDay();
-    var daysToMon=dow===0?6:dow-1;
-    var ws=new Date(e.date+'T12:00:00');
-    var artistKey=(e.artist||e.name||'').toLowerCase().split('|')[0].trim();var key=e.city+'|'+artistKey+'|'+e.date;
+    var artistLower=(e.artist||e.name||'').toLowerCase();if(!runTracker[e.city+'|'+artistLower]){runTracker[e.city+'|'+artistLower]={run:0,lastDate:null};}var tr=runTracker[e.city+'|'+artistLower];if(tr.lastDate){var dayGap=(d-new Date(tr.lastDate+'T12:00:00'))/86400000;if(dayGap>1)tr.run++;}tr.lastDate=e.date;var ws=d;var key=e.city+'|'+artistLower+'|'+tr.run;
     if(!byWin[key])byWin[key]={city:e.city,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
     var w=byWin[key];
     if(d<w.firstDate)w.firstDate=d;
@@ -996,7 +993,36 @@ function runMatches(){
     return merged;
   })(windows);
 
-  cached=windows;
+  
+  // Cross-window scoring: primaryHits = unique artists in same city within 7 days
+  windows.forEach(function(w) {
+    var wFirst = new Date(w.events[0].date+'T12:00:00');
+    var wLast  = new Date(w.events[w.events.length-1].date+'T12:00:00');
+    var nearbyArtists = new Set();
+    windows.forEach(function(w2) {
+      if (w2 === w || w2.city !== w.city) return;
+      var w2First = new Date(w2.events[0].date+'T12:00:00');
+      var w2Last  = new Date(w2.events[w2.events.length-1].date+'T12:00:00');
+      // Overlap or within 7 days of each other
+      var gap = Math.min(
+        Math.abs(w2First - wLast),
+        Math.abs(wFirst  - w2Last)
+      ) / 86400000;
+      if (gap <= 7) {
+        w2.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
+          nearbyArtists.add(e.artist||e.name);
+        });
+      }
+    });
+    // Also add this window's own artists
+    w.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
+      nearbyArtists.add(e.artist||e.name);
+    });
+    w.primaryHits = nearbyArtists.size;
+    w.score = w.primaryHits >= 3 ? 90 : w.primaryHits === 2 ? 60 : 30;
+  });
+
+cached=windows;
 
   // Stats
   var totalH=windows.reduce(function(s,w){return s+w.primaryHits;},0);
