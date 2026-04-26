@@ -1131,6 +1131,31 @@ function toggleDateFilter(){var panel=document.getElementById('datePanel');var b
 function setDatePreset(preset){var today=new Date();var from,to;if(preset==='month'){from=new Date(today.getFullYear(),today.getMonth(),1);to=new Date(today.getFullYear(),today.getMonth()+1,0);}else{var days=parseInt(preset);from=today;to=new Date(today);to.setDate(today.getDate()+days);}var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(from);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;document.getElementById('dateToggle').textContent=S.dateStart+' to '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');updateAnyCityVisibility();}
 function onCustomDate(){S.dateStart=document.getElementById('dateFrom').value||null;S.dateEnd=document.getElementById('dateTo').value||null;var label=(S.dateStart||S.dateEnd)?(S.dateStart||'...')+' to '+(S.dateEnd||'...'):'Any dates';document.getElementById('dateToggle').textContent=label;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});updateAnyCityVisibility();}
 
+function emailMyMatches(userId, secret) {
+  if (!cached || !cached.length) return;
+  var windows = cached.map(function(w) {
+    var firstDate = w.events[0] ? w.events[0].date : '';
+    var lastDate  = w.events[w.events.length-1] ? w.events[w.events.length-1].date : '';
+    return {
+      city: w.city,
+      score: w.score,
+      flightHours: w.fh || null,
+      flightUrl: w.flightUrl || (typeof getSkyscannerUrl === 'function' ? getSkyscannerUrl(w.city, firstDate, lastDate) : null),
+      events: w.events.map(function(e) {
+        return { name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url };
+      })
+    };
+  });
+  var homeCity = S.home ? S.home.name.split(',')[0].trim() : 'Calgary';
+  fetch('/api/send-digest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: userId, windows: windows, homeCity: homeCity, secret: secret || null })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    console.log('[email]', d);
+  });
+}
+
 function clearAll(){
   S.cities=[];S.artists=[];S.teams=[];S.genres=[];S.leagues=[];S.home='';
   LIVE_EVENTS=[];cached=[];
