@@ -906,10 +906,9 @@ function runMatches(){
     var d=new Date(e.date+'T12:00:00');
     var dow=d.getDay();
     var daysToMon=dow===0?6:dow-1;
-    var d=new Date(e.date+'T12:00:00');
-    var ws=d;
+    var ws=new Date(e.date+'T12:00:00');
     var key=e.city+'|'+e.date;
-    if(!byWin[key])byWin[key]={city:e.city,start:ws,events:[],nameSeen:{},firstDate:d,lastDate:d};
+    if(!byWin[key])byWin[key]={city:e.city,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
     var w=byWin[key];
     if(d<w.firstDate)w.firstDate=d;
     if(d>w.lastDate)w.lastDate=d;
