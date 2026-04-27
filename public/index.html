@@ -1002,31 +1002,26 @@ function runMatches(){
   
 
   
-  // Cross-window scoring: primaryHits = unique artists in same city within 7 days
+  // Cross-window scoring: count unique artists/events from ALL windows in same city within 7 days
   windows.forEach(function(w) {
     var wFirst = new Date(w.events[0].date+'T12:00:00');
     var wLast  = new Date(w.events[w.events.length-1].date+'T12:00:00');
     var nearbyArtists = new Set();
+    // Add this window's own events (all of them, broad or not)
+    w.events.forEach(function(e){ nearbyArtists.add(e.artist||e.name); });
+    // Add nearby windows in same city within 7 days
     windows.forEach(function(w2) {
       if (w2 === w || w2.city !== w.city) return;
       var w2First = new Date(w2.events[0].date+'T12:00:00');
       var w2Last  = new Date(w2.events[w2.events.length-1].date+'T12:00:00');
-      // Overlap or within 7 days of each other
-      var gap = Math.min(
-        Math.abs(w2First - wLast),
-        Math.abs(wFirst  - w2Last)
-      ) / 86400000;
+      var gap = Math.min(Math.abs(w2First-wLast), Math.abs(wFirst-w2Last)) / 86400000;
       if (gap <= 7) {
-        w2.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
-          nearbyArtists.add(e.artist||e.name);
-        });
+        w2.events.forEach(function(e){ nearbyArtists.add(e.artist||e.name); });
       }
     });
-    // Also add this window's own artists
-    w.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
-      nearbyArtists.add(e.artist||e.name);
-    });
     w.primaryHits = nearbyArtists.size;
+    // Score: 60 for 2 unique acts nearby, 90 for 3+
+    // But only boost if this window itself has events (it always does)
     w.score = w.primaryHits >= 3 ? 90 : w.primaryHits === 2 ? 60 : 30;
   });
 
