@@ -202,7 +202,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
     <span class="nav-status" id="navStatus"></span>
     <button class="nbtn" onclick="clearAll()">Clear</button>
     <button class="nbtn gold" id="findBtn" onclick="findMatches()">Find matches</button>
-    <div id="auth-pill"></div>
+    <div id="auth-pill"><button class="nbtn gold" onclick="document.getElementById('loginModal').style.display='flex'">Log in</button></div>
   </div>
 </nav>
 
@@ -1388,6 +1388,8 @@ await initAuth({
   
   onLogout: () => {
     window._hasSub = false;
+    const pill = document.getElementById('auth-pill');
+    if (pill) pill.innerHTML = '<button class="nbtn gold" onclick="document.getElementById(\'loginModal\').style.display=\'flex\'">Log in</button>';
   }
 });
 bindModalControls();
