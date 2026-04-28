@@ -1255,7 +1255,6 @@ function clearAll(){
 }
 
 window.S = S;
-window.hydrate = hydrate;
 window.findMatches = findMatches;
 window.cached = cached;
 
@@ -1393,8 +1392,38 @@ window.findMatches = function() {
 (async () => {
   try {
     const prefs = await loadPreferences();
-    if (prefs && window.hydrate) { await window.hydrate(prefs); window._hasSub = true; }
-  } catch(e) {}
+    if (!prefs) return;
+    // Populate home city input
+    const homeInput = document.getElementById('homeInput');
+    if (homeInput && prefs.home_city) {
+      homeInput.value = prefs.home_city;
+      homeInput.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+    // Add city chips
+    (prefs.travel_cities||[]).forEach(city => {
+      const inp = document.getElementById('cityInput');
+      if (inp) { inp.value = city; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+      const btn = document.getElementById('addCity');
+      if (btn) btn.click();
+    });
+    // Add artist chips
+    (prefs.artists||[]).forEach(a => {
+      const inp = document.getElementById('artistInput');
+      if (inp) { inp.value = a; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+      const btn = document.getElementById('addArtist');
+      if (btn) btn.click();
+    });
+    // Add team chips
+    (prefs.teams||[]).forEach(t => {
+      const inp = document.getElementById('teamInput');
+      if (inp) { inp.value = t; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+      const btn = document.getElementById('addTeam');
+      if (btn) btn.click();
+    });
+    window._hasSub = true;
+    // Auto-run search
+    if (typeof findMatches === 'function') findMatches();
+  } catch(e) { console.log('[hydrate err]', e.message); }
 })();
 </script>
 
