@@ -61,7 +61,6 @@ export default async (req, context) => {
   });
 
   if (artist) {
-    params.set("classificationName", "Music");
     params.set("keyword", artist);
   } else if (team) {
     params.set("classificationName", "Sports");
