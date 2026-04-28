@@ -1393,39 +1393,27 @@ window.findMatches = function() {
   try {
     const prefs = await loadPreferences();
     if (!prefs) return;
-    // Populate home city input
+    // Set home city
     const homeInput = document.getElementById('homeInput');
     if (homeInput && prefs.home_city) {
       homeInput.value = prefs.home_city;
-      homeInput.dispatchEvent(new Event('input', {bubbles:true}));
+      homeInput.dispatchEvent(new Event('change', {bubbles:true}));
     }
-    // Add city chips
-    (prefs.travel_cities||[]).forEach(city => {
-      const inp = document.getElementById('cityInput');
-      if (inp) { inp.value = city; inp.dispatchEvent(new Event('input',{bubbles:true})); }
-      const btn = document.getElementById('addCity');
+    // Helper to add a chip
+    const addChip = (inputId, value) => {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      inp.value = value;
+      inp.dispatchEvent(new Event('input', {bubbles:true}));
+      const btn = inp.parentElement ? inp.parentElement.querySelector('button') : null;
       if (btn) btn.click();
-    });
-    // Add artist chips
-    (prefs.artists||[]).forEach(a => {
-      const inp = document.getElementById('artistInput');
-      if (inp) { inp.value = a; inp.dispatchEvent(new Event('input',{bubbles:true})); }
-      const btn = document.getElementById('addArtist');
-      if (btn) btn.click();
-    });
-    // Add team chips
-    (prefs.teams||[]).forEach(t => {
-      const inp = document.getElementById('teamInput');
-      if (inp) { inp.value = t; inp.dispatchEvent(new Event('input',{bubbles:true})); }
-      const btn = document.getElementById('addTeam');
-      if (btn) btn.click();
-    });
+    };
+    // Add cities, artists, teams
+    for (const c of (prefs.travel_cities||[])) addChip('cityInput', c);
+    for (const a of (prefs.artists||[])) addChip('artistInput', a);
+    for (const t of (prefs.teams||[])) addChip('teamInput', t);
     window._hasSub = true;
-    // Auto-run search
-    if (typeof findMatches === 'function') findMatches();
-  } catch(e) { console.log('[hydrate err]', e.message); }
+    // Run the search
+    if (typeof window.findMatches === 'function') window.findMatches();
+  } catch(e) { console.log('[hydrate]', e.message); }
 })();
-</script>
-
-</body>
-</html>
