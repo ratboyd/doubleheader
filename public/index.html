@@ -1388,6 +1388,17 @@ window.findMatches = function() {
 window.hydrate = hydrate;
 window.LIVE_EVENTS = LIVE_EVENTS;
 window.cached = cached;
+
+// On page load: immediately try to hydrate if user is already signed in
+(async () => {
+  try {
+    const prefs = await loadPreferences();
+    if (prefs && window.hydrate) {
+      await window.hydrate(prefs);
+      window._hasSub = true;
+    }
+  } catch(e) { console.log('[init hydrate error]', e); }
+})();
 </script>
 
 </body>
