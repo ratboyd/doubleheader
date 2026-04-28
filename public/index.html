@@ -1257,6 +1257,13 @@ function clearAll(){
 window.S = S;
 window.findMatches = findMatches;
 window.cached = cached;
+window.addItem = addItem;
+window.setHome = function(city) {
+  var hi = document.getElementById('homeInput');
+  if (hi) { hi.value = city; hi.dispatchEvent(new Event('change',{bubbles:true})); }
+  S.home = city;
+};
+
 
 // Boot
 updateProgress();
@@ -1393,27 +1400,25 @@ window.findMatches = function() {
   try {
     const prefs = await loadPreferences();
     if (!prefs) return;
-    // Set home city
-    const homeInput = document.getElementById('homeInput');
-    if (homeInput && prefs.home_city) {
-      homeInput.value = prefs.home_city;
-      homeInput.dispatchEvent(new Event('change', {bubbles:true}));
+    if (window.setHome) window.setHome(prefs.home_city || '');
+    if (window.addItem) {
+      for (const c of (prefs.travel_cities||[])) {
+        const inp = document.getElementById('cityInput');
+        if (inp) inp.value = c;
+        window.addItem('city');
+      }
+      for (const a of (prefs.artists||[])) {
+        const inp = document.getElementById('artistInput');
+        if (inp) inp.value = a;
+        window.addItem('artist');
+      }
+      for (const t of (prefs.teams||[])) {
+        const inp = document.getElementById('teamInput');
+        if (inp) inp.value = t;
+        window.addItem('team');
+      }
     }
-    // Helper to add a chip
-    const addChip = (inputId, value) => {
-      const inp = document.getElementById(inputId);
-      if (!inp) return;
-      inp.value = value;
-      inp.dispatchEvent(new Event('input', {bubbles:true}));
-      const btn = inp.parentElement ? inp.parentElement.querySelector('button') : null;
-      if (btn) btn.click();
-    };
-    // Add cities, artists, teams
-    for (const c of (prefs.travel_cities||[])) addChip('cityInput', c);
-    for (const a of (prefs.artists||[])) addChip('artistInput', a);
-    for (const t of (prefs.teams||[])) addChip('teamInput', t);
     window._hasSub = true;
-    // Run the search
-    if (typeof window.findMatches === 'function') window.findMatches();
+    if (window.findMatches) window.findMatches();
   } catch(e) { console.log('[hydrate]', e.message); }
 })();
