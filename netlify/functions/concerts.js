@@ -108,14 +108,21 @@ export default async (req, context) => {
 
     // ── POST-FILTERS ─────────────────────────────────────────────────────────
     // 1. Drop tribute/cover acts for artist searches
+    // Classical/orchestral events that TM miscategorizes under Rock/Pop etc.
+    const CLASSICAL_WORDS = ['symphony', 'orchestra', 'philharmonic', 'ballet',
+      'opera ', 'chamber music', 'concerto', 'symphony orchestra'];
+    // Filter these out entirely regardless of search type
+    const isClassical = ev => CLASSICAL_WORDS.some(w => ev.name.toLowerCase().includes(w));
+
     const TRIBUTE_WORDS = [
       'tribute', 'salute to', 'experience', 'vs.', 'presents',
-      'a night of', 'the music of', 'performs ', 'legacy', 'symphony', 'orchestral',
+      'a night of', 'the music of', 'performs ', 'legacy', 'orchestral',
       'featuring songs of', 'celebration of', 'dance night',
       'ticket + hotel', 'hotel deal', 'hotel package', 'vip package',
       'allstars', 'all stars', 'all-stars', 'best of the', 'greatest hits of',
     ];
     const filteredEvents = events.filter(ev => {
+      if (isClassical(ev)) return false;
       const nameLower = ev.name.toLowerCase();
       const artistLower = (ev.artist || '').toLowerCase();
       // For artist searches: drop if name contains tribute words

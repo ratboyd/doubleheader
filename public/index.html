@@ -106,7 +106,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .mcard-head{padding:13px 15px 9px;display:flex;justify-content:space-between;align-items:flex-start}
 .mcard-city{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.3px}
 .mcard-dates{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);margin-top:2px}
-.score-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.score-num{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;text-align:right;line-height:1.2}
 .score-num.triple{color:var(--teal)}.score-num.double{color:var(--purple)}.score-num.single{color:var(--ink3)}
 .score-lbl{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;text-align:right}
 .mcard-events{padding:0 15px 13px;display:flex;flex-direction:column;gap:5px}
@@ -919,32 +919,41 @@ function runMatches(){
     return false;
   });
 
-  // Group matched events into trip windows by city.
-  // Events from DIFFERENT artists within 3 days of each other in the same
-  // city are combined into one trip card (the Doubleheader concept).
+  // Group matched events into 3-day trip windows by city.
+  // Any day of week is valid - weekday events (playoff games, residencies) are
+  // first-class citizens. We slide a 3-day window to find the best combos.
   var byWin={};
   matched.sort(function(a,b){
     var cc=a.city.localeCompare(b.city);
     return cc!==0?cc:a.date.localeCompare(b.date);
   });
+
+  // Build initial windows: each unique event date anchors a 3-day window
+  // Events within [anchor, anchor+2] days join that window
+  var allDates={};
+  matched.forEach(function(e){
+    if(!allDates[e.city])allDates[e.city]={};
+    allDates[e.city][e.date]=true;
+  });
+
   matched.forEach(function(e){
     var d=new Date(e.date+'T12:00:00');
-    // Find an open window in this city whose last event is within 3 days
+    // Find open window: anchor within last 2 days (so window spans anchor to anchor+2)
     var bestKey=null,bestGap=Infinity;
     for(var k in byWin){
       var w2=byWin[k];
       if(w2.city!==e.city)continue;
-      var wLast=new Date(w2.lastDate+'T12:00:00');
-      var gap=(d-wLast)/86400000;
-      if(gap>=0&&gap<=3&&gap<bestGap){bestGap=gap;bestKey=k;}
+      var anchor=new Date(w2.anchorDate+'T12:00:00');
+      var gap=(d-anchor)/86400000;
+      // Must fit within 3-day window (days 0,1,2 from anchor)
+      if(gap>=0&&gap<=2&&gap<bestGap){bestGap=gap;bestKey=k;}
     }
     if(!bestKey){
       bestKey=e.city+'|'+e.date;
-      byWin[bestKey]={city:e.city,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
+      byWin[bestKey]={city:e.city,anchorDate:e.date,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
     }
     var w=byWin[bestKey];
     if(e.date>w.lastDate)w.lastDate=e.date;
-    // Deduplicate same name+date
     var nk=(e.artist||e.name||'').toLowerCase()+'|'+e.date+'|'+(e.venue||'').toLowerCase();
     if(!w.nameSeen[nk]){w.events.push(e);w.nameSeen[nk]=true;}
   });
@@ -991,18 +1000,72 @@ function runMatches(){
   
 
   
-  // Score: primary acts (exact search) + whether broad acts exist lifts the score
+  // Score windows: count unique acts, detect matinee+evening same day
   windows.forEach(function(w) {
     var primaryActs = new Set();
-    var hasBroad = false;
+    var broadActs = new Set();
+    var byDate = {};
     w.events.forEach(function(e){
-      if (!e.broadMatch) primaryActs.add((e.artist||e.name||'').toLowerCase());
-      else hasBroad = true;
+      var key = (e.artist||e.name||'').toLowerCase();
+      if (!e.broadMatch) primaryActs.add(key);
+      else broadActs.add(key);
+      if(!byDate[e.date])byDate[e.date]=[];
+      byDate[e.date].push(e);
+    });
+    // Matinee+evening: same day has 2+ different acts
+    var hasSameDay = Object.keys(byDate).some(function(dt){
+      var acts=new Set(byDate[dt].map(function(e){return (e.artist||e.name||'').toLowerCase();}));
+      return acts.size >= 2;
     });
     w.primaryHits = primaryActs.size;
-    var totalActs = primaryActs.size + (hasBroad ? 1 : 0);
-    w.score = totalActs >= 3 ? 90 : totalActs >= 2 ? 60 : 30;
+    w.hasBroad = broadActs.size > 0;
+    w.hasSameDay = hasSameDay;
+    var totalActs = primaryActs.size + (broadActs.size > 0 ? 1 : 0);
+    // Score: each unique act = 1 point base, same-day combo bonus
+    w.score = Math.min(totalActs + (hasSameDay ? 1 : 0), 4);
   });
+  // Genre affinity: sports teams signal music genre preferences
+  // If user has teams, boost windows where music genre matches team vibe
+  var TEAM_AFFINITY = {
+    // NHL hockey -> rock/country/alt
+    hockey: ['rock','country','alternative','metal','indie'],
+    // NBA basketball -> hip-hop/r&b/pop
+    basketball: ['hip-hop','r&b','pop','rap'],
+    // MLB baseball -> country/rock/classic rock
+    baseball: ['country','rock','classic rock','folk'],
+    // NFL football -> country/rock/hip-hop
+    football: ['country','rock','hip-hop','alternative'],
+    // MLS soccer -> pop/electronic/latin
+    soccer: ['pop','electronic','latin','indie']
+  };
+  var LEAGUE_SPORT = {
+    'nhl':'hockey','nba':'basketball','mlb':'baseball','nfl':'football','mls':'soccer'
+  };
+  // Determine user's sport context from saved teams
+  var userSports = new Set();
+  S.leagues.forEach(function(l){
+    var s=LEAGUE_SPORT[l.toLowerCase()]; if(s)userSports.add(s);
+  });
+  windows.forEach(function(w){
+    if(userSports.size===0)return;
+    var musicEvents=w.events.filter(function(e){return e.type==='artist'&&!e.broadMatch;});
+    if(musicEvents.length===0)return;
+    var hasTeamEvent=w.events.some(function(e){return e.type==='team'||e.type==='league';});
+    if(!hasTeamEvent)return;
+    // Check if any music event's genre matches sport affinity
+    var affinityMatch=false;
+    userSports.forEach(function(sport){
+      var goodGenres=TEAM_AFFINITY[sport]||[];
+      musicEvents.forEach(function(e){
+        var g=(e.genre||e.broadLabel||'').toLowerCase();
+        if(goodGenres.some(function(ag){return g.includes(ag);}))affinityMatch=true;
+      });
+    });
+    // Boost score by 1 for affinity match (e.g. Stars + Zach Top beats Stars + symphony)
+    if(affinityMatch)w.score=Math.min(w.score+1,4);
+    w.affinityMatch=affinityMatch;
+  });
+
   function w2s(w){var d=w.events.slice().sort(function(a,b){return a.date<b.date?-1:1;});return d[0]?d[0].date:w.start||'';}
   windows.sort(function(a,b){var da=w2s(a),db=w2s(b);return b.score-a.score||(da<db?-1:da>db?1:0);});
 
@@ -1050,9 +1113,11 @@ function fmt(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLoca
 function fmtY(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
 
 function buildCard(w){
-  var primaryHits=w.primaryHits||w.events.filter(function(e){return !e.broadMatch;}).length;
-  var tier=primaryHits>=3?'triple':primaryHits>=2?'double':'single';
-  var tl=primaryHits>=3?'Triple overlap':primaryHits>=2?'Doubleheader':w.broadHits>0?'Broad match':'Single match';
+  var sc=w.score||1;
+  var tier=sc>=4?'triple':sc>=3?'triple':sc>=2?'double':'single';
+  var tl=w.hasSameDay?'Same-day double':sc>=4?'Hat trick':sc>=3?'Triple':sc>=2?'Doubleheader':'Single';
+  if(w.hasBroad&&sc<2)tl='Broad match';
+  var primaryHits=w.primaryHits||1;
   var fd=w.firstDate||w.start,ld=w.lastDate||w.start;
   var dateStr=fmt(fd)===fmt(ld)?fmtY(fd):fmt(fd)+' – '+fmtY(ld);
   var fh=w.fh;
@@ -1091,7 +1156,7 @@ function buildCard(w){
     return '<div class="mevent '+typeClass+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+broadTag+subNote+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dLabel+'</div>'+ticketLink+'</div>';
   }).join('');
 
-  return '<div class="mcard '+tier+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+(w.isAnyCity?'<span class="anywhere-pill">Anywhere</span>':'')+'</div><div class="mcard-dates">'+dateStr+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+w.score+'</div><div class="score-lbl">score</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot">'+flightHtml+'<div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
+  return '<div class="mcard '+tier+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+(w.isAnyCity?'<span class="anywhere-pill">Anywhere</span>':'')+'</div><div class="mcard-dates">'+dateStr+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+tl+'</div><div class="score-lbl">&nbsp;</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot">'+flightHtml+'<div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
 }
 
 function renderGrid(wins){
