@@ -202,7 +202,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
     <span class="nav-status" id="navStatus"></span>
     <button class="nbtn" onclick="clearAll()">Clear</button>
     <button class="nbtn gold" id="findBtn" onclick="findMatches()">Find matches</button>
-    <div id="auth-pill"><button class="nbtn gold" onclick="document.getElementById('loginModal').style.display='flex'">Log in</button></div>
+    <div id="auth-pill"></div>
   </div>
 </nav>
 
@@ -1361,35 +1361,11 @@ await initAuth({
       '<span class="nav-user"><span class="nav-avatar">' + user.email[0].toUpperCase() + '</span>' +
       user.email + '</span><button class="nbtn" onclick="signOut()">Sign out</button>';
     const prefs = await loadPreferences();
-    if (prefs && window.addItem) {
-      const hi = document.getElementById('homeInput');
-      if (hi) { hi.value = prefs.home_city || ''; hi.dispatchEvent(new Event('change',{bubbles:true})); }
-      for (const c of (prefs.travel_cities||[])) {
-        const inp = document.getElementById('cityInput'); if(inp) inp.value = c;
-        window.addItem('city');
-      }
-      for (const a of (prefs.artists||[])) {
-        const inp = document.getElementById('artistInput'); if(inp) inp.value = a;
-        window.addItem('artist');
-      }
-      for (const t of (prefs.teams||[])) {
-        const inp = document.getElementById('teamInput'); if(inp) inp.value = t;
-        window.addItem('team');
-      }
-      for (const g of (prefs.genres||[])) {
-        const btn = document.querySelector('[data-genre="'+g+'"]'); if(btn) btn.click();
-      }
-      for (const l of (prefs.leagues||[])) {
-        const btn = document.querySelector('[data-league="'+l+'"]'); if(btn) btn.click();
-      }
-      window._hasSub = true;
-      window.findMatches && window.findMatches();
-    }
-  
+    await hydrate(prefs);
+    if (prefs) window.findMatches && window.findMatches();
+  },
   onLogout: () => {
     window._hasSub = false;
-    const pill = document.getElementById('auth-pill');
-    if (pill) pill.innerHTML = '<button class="nbtn gold" onclick="document.getElementById(\'loginModal\').style.display=\'flex\'">Log in</button>';
   }
 });
 bindModalControls();
