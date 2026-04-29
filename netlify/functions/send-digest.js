@@ -98,9 +98,9 @@ export default async (req) => {
   if (userId && userId !== 'test') {
     const { data: seen } = await supabase
       .from('seen_events')
-      .select('event_id')
+      .select('tm_event_id')
       .eq('user_id', userId);
-    const seenIds = new Set((seen || []).map(r => r.event_id));
+    const seenIds = new Set((seen || []).map(r => r.tm_event_id));
 
     filteredWindows = windows.map(w => ({
       ...w,
@@ -142,11 +142,13 @@ export default async (req) => {
   if (userId && userId !== 'test') {
     const eventIds = filteredWindows.flatMap(w => w.events.map(e => ({
       user_id: userId,
-      event_id: e.url || (e.name + '|' + e.date + '|' + e.city),
+      tm_event_id: e.url || (e.name + '|' + e.date + '|' + e.city),
+      event_name: e.name,
+      event_city: e.city,
       alerted_at: new Date().toISOString()
     })));
     if (eventIds.length) {
-      await supabase.from('seen_events').upsert(eventIds, { onConflict: 'user_id,event_id' });
+      await supabase.from('seen_events').upsert(eventIds, { onConflict: 'user_id,tm_event_id' });
     }
   }
 

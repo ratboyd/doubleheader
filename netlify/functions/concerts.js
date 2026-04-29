@@ -48,7 +48,7 @@ export default async (req, context) => {
     : now.toISOString().split(".")[0] + "Z";
   const endDT = endDate
     ? new Date(endDate + "T23:59:59").toISOString().split(".")[0] + "Z"
-    : (() => { const d = new Date(now); d.setDate(d.getDate() + 90); return d.toISOString().split(".")[0] + "Z"; })();
+    : (() => { const d = new Date(now); d.setDate(d.getDate() + 365); return d.toISOString().split(".")[0] + "Z"; })();
 
   const params = new URLSearchParams({
     apikey: TM_KEY,
@@ -158,8 +158,32 @@ export default async (req, context) => {
     });
 
 
+    // Deduplicate by artist+date+city: for each group, prefer the canonical show
+    // (exact artist name match) over suite reservations, 2-day bundle tickets, etc.
+    const BUNDLE_WORDS = ['suite reservation', '2-day ticket', '2day ticket', 'cannot split',
+      'hotel package', 'vip package', 'pre-sale', 'meet & greet', 'meet and greet'];
+    const dedupMap = new Map();
+    for (const ev of filteredEvents) {
+      const key = (ev.artist||'').toLowerCase() + '|' + ev.date + '|' + ev.city.toLowerCase();
+      const isBundle = BUNDLE_WORDS.some(w => ev.name.toLowerCase().includes(w));
+      if (!dedupMap.has(key)) {
+        dedupMap.set(key, ev);
+      } else {
+        const existing = dedupMap.get(key);
+        const existingIsBundle = BUNDLE_WORDS.some(w => existing.name.toLowerCase().includes(w));
+        // Prefer non-bundle over bundle; prefer TM link over 3rd party
+        if (existingIsBundle && !isBundle) dedupMap.set(key, ev);
+        else if (!existingIsBundle && !isBundle) {
+          // Both non-bundle: prefer ticketmaster.com over gofevo etc
+          if (ev.url?.includes('ticketmaster.com') && !existing.url?.includes('ticketmaster.com'))
+            dedupMap.set(key, ev);
+        }
+      }
+    }
+    const dedupedEvents = Array.from(dedupMap.values());
+
     return new Response(JSON.stringify({
-      events: filteredEvents, total: filteredEvents.length, pages: data.page?.totalPages || 1,
+      events: dedupedEvents, total: dedupedEvents.length, pages: data.page?.totalPages || 1,
     }), {
       status: 200,
       headers: { "Content-Type":"application/json","Cache-Control":"public, max-age=3600","Access-Control-Allow-Origin":"*" }

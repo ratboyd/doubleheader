@@ -18,28 +18,41 @@ async function fetchEvents(keyword, type) {
 }
 
 function groupIntoWindows(events, cities, homeCity) {
-  // Normalised city names for matching
   const cityNames = cities.map(c => c.name.toLowerCase());
 
-  // Filter to saved cities only — exact match
+  // Filter to saved cities
   const matched = events.filter(e => {
     if (!e.date) return false;
     const evCity = e.city.toLowerCase().trim();
-    return cityNames.some(c => c === evCity);
+    return cityNames.some(c => c === evCity || evCity.includes(c) || c.includes(evCity));
   });
 
-  // Group by city + week (Mon anchor, same as website)
+  // Sort by city then date, then group into 3-day trip windows (same logic as website)
+  matched.sort((a, b) => {
+    const cc = a.city.localeCompare(b.city);
+    return cc !== 0 ? cc : a.date.localeCompare(b.date);
+  });
+
   const byWin = {};
   matched.forEach(function(e) {
-    const d   = new Date(e.date + 'T12:00:00');
-    const dow = d.getDay();
-    const daysToMon = dow === 0 ? 6 : dow - 1;
-    const ws  = new Date(d); ws.setDate(d.getDate() - daysToMon);
-    const key = e.city + '|' + ws.toDateString();
-    if (!byWin[key]) byWin[key] = { city: e.city, start: ws, events: [], nameSeen: {}, score: 0, fh: null, flightUrl: null };
-    const w = byWin[key];
-    if (!w.nameSeen[e.name]) {
-      w.nameSeen[e.name] = true;
+    const d = new Date(e.date + 'T12:00:00');
+    // Find open window in same city within 3 days
+    let bestKey = null, bestGap = Infinity;
+    for (const k in byWin) {
+      const w2 = byWin[k];
+      if (w2.city !== e.city) continue;
+      const gap = (d - new Date(w2.lastDate + 'T12:00:00')) / 86400000;
+      if (gap >= 0 && gap <= 3 && gap < bestGap) { bestGap = gap; bestKey = k; }
+    }
+    if (!bestKey) {
+      bestKey = e.city + '|' + e.date;
+      byWin[bestKey] = { city: e.city, start: e.date, lastDate: e.date, events: [], nameSeen: {}, score: 0, flightUrl: null };
+    }
+    const w = byWin[bestKey];
+    if (e.date > w.lastDate) w.lastDate = e.date;
+    const nk = (e.artist || e.name || '').toLowerCase() + '|' + e.date;
+    if (!w.nameSeen[nk]) {
+      w.nameSeen[nk] = true;
       w.events.push({ name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url });
       w.score += e.broadMatch ? 10 : 30;
     }

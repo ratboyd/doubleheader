@@ -354,6 +354,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────────────
 var S = { cities:[], artists:[], teams:[], genres:[], leagues:[], home:'' };
+var _today=new Date(); var _end=new Date(_today); _end.setFullYear(_today.getFullYear()+1);
+S.dateStart=_today.toISOString().split('T')[0]; S.dateEnd=_end.toISOString().split('T')[0];
 var KEYS = { city:'cities', artist:'artists', team:'teams', genre:'genres', league:'leagues' };
 function getArr(type){ return S[KEYS[type]]; }
 
@@ -900,28 +902,38 @@ function runMatches(){
     return false;
   });
 
-  // Group into Mon-Sun windows
+  // Group matched events into trip windows by city.
+  // Events from DIFFERENT artists within 3 days of each other in the same
+  // city are combined into one trip card (the Doubleheader concept).
   var byWin={};
-  var runTracker={};matched.sort(function(a,b){return (a.city+a.artist+a.date).localeCompare(b.city+b.artist+b.date);});matched.forEach(function(e){
+  matched.sort(function(a,b){
+    var cc=a.city.localeCompare(b.city);
+    return cc!==0?cc:a.date.localeCompare(b.date);
+  });
+  matched.forEach(function(e){
     var d=new Date(e.date+'T12:00:00');
-    var artistLower=(e.artist||e.name||'').toLowerCase();if(!runTracker[e.city+'|'+artistLower]){runTracker[e.city+'|'+artistLower]={run:0,lastDate:null};}var tr=runTracker[e.city+'|'+artistLower];if(tr.lastDate){var dayGap=(d-new Date(tr.lastDate+'T12:00:00'))/86400000;if(dayGap>1)tr.run++;}tr.lastDate=e.date;var ws=d;var key=e.city+'|'+artistLower+'|'+tr.run;
-    if(!byWin[key])byWin[key]={city:e.city,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
-    var w=byWin[key];
-    if(d<w.firstDate)w.firstDate=d;
-    if(d>w.lastDate)w.lastDate=d;
-    // Deduplicate by name — keep higher weight version
-    var nk=e.name.toLowerCase()+'|'+e.date;
-    if(!w.nameSeen[nk]||e.weight>w.nameSeen[nk].weight){
-      if(w.nameSeen[nk]){
-        w.events=w.events.filter(function(ev){return ev.name.toLowerCase()!==nk;});
-      }
-      w.events.push(e);
-      w.nameSeen[nk]=e;
+    // Find an open window in this city whose last event is within 3 days
+    var bestKey=null,bestGap=Infinity;
+    for(var k in byWin){
+      var w2=byWin[k];
+      if(w2.city!==e.city)continue;
+      var wLast=new Date(w2.lastDate+'T12:00:00');
+      var gap=(d-wLast)/86400000;
+      if(gap>=0&&gap<=3&&gap<bestGap){bestGap=gap;bestKey=k;}
     }
+    if(!bestKey){
+      bestKey=e.city+'|'+e.date;
+      byWin[bestKey]={city:e.city,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
+    }
+    var w=byWin[bestKey];
+    if(e.date>w.lastDate)w.lastDate=e.date;
+    // Deduplicate same name+date
+    var nk=(e.artist||e.name||'').toLowerCase()+'|'+e.date+'|'+(e.venue||'').toLowerCase();
+    if(!w.nameSeen[nk]){w.events.push(e);w.nameSeen[nk]=true;}
   });
 
-  
   var windows=[];
+
   for(var k in byWin){
     var w=byWin[k];
     // Score: weighted sum of unique acts
@@ -949,47 +961,7 @@ function runMatches(){
     });
   }
 
-  // Split windows where same-artist events have >1 day gap (e.g. Stars Game 3 vs Game 4)
-  var splitWindows = [];
-  windows.forEach(function(w) {
-    // Group events by artist
-    var byArtist = {};
-    w.events.forEach(function(e) {
-      var ak = (e.artist||e.name||'').toLowerCase();
-      if (!byArtist[ak]) byArtist[ak] = [];
-      byArtist[ak].push(e);
-    });
-
-    // Check if any single artist has events with >1 day gap
-    var needsSplit = Object.values(byArtist).some(function(evs) {
-      evs.sort(function(a,b){return a.date.localeCompare(b.date);});
-      for (var i=1; i<evs.length; i++) {
-        var gap = (new Date(evs[i].date+'T12:00:00') - new Date(evs[i-1].date+'T12:00:00'))/86400000;
-        if (gap > 1) return true;
-      }
-      return false;
-    });
-
-    if (!needsSplit) { splitWindows.push(w); return; }
-
-    // Split: each "run" of consecutive dates (gap ≤1 day) becomes its own window
-    var allEvents = w.events.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
-    var runs = [[allEvents[0]]];
-    for (var i=1; i<allEvents.length; i++) {
-      var gap = (new Date(allEvents[i].date+'T12:00:00') - new Date(allEvents[i-1].date+'T12:00:00'))/86400000;
-      if (gap <= 1) { runs[runs.length-1].push(allEvents[i]); }
-      else { runs.push([allEvents[i]]); }
-    }
-    runs.forEach(function(run) {
-      var wCopy = JSON.parse(JSON.stringify(w));
-      wCopy.events = run;
-      wCopy.start = run[0].date;
-      wCopy.firstDate = new Date(run[0].date+'T12:00:00');
-      wCopy.lastDate  = new Date(run[run.length-1].date+'T12:00:00');
-      splitWindows.push(wCopy);
-    });
-  });
-  windows = splitWindows;
+  // (per-artist split removed; trip-window grouping handles this natively)
   windows.sort(function(a,b){return b.score-a.score||a.start-b.start;});
   if(S.anyCity){
     var cityCounts={};windows.forEach(function(w){cityCounts[w.city]=(cityCounts[w.city]||0)+w.events.length;});

@@ -39,3 +39,9 @@ create policy "Users read own seen_events"
 create index if not exists idx_prefs_home_city     on public.user_preferences(home_city);
 create index if not exists idx_prefs_travel_cities  on public.user_preferences using gin(travel_cities);
 create index if not exists idx_seen_events_user     on public.seen_events(user_id, tm_event_id);
+
+-- Allow service role (used by Netlify functions) to insert seen_events
+create policy "Service role manages seen_events"
+  on public.seen_events for all
+  using (true)
+  with check (true);
