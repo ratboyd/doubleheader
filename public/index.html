@@ -974,31 +974,13 @@ function runMatches(){
   
 
   
-  // Cross-window scoring: primaryHits = unique artists in same city within 7 days
+  // Score each window by unique non-broad acts it contains
   windows.forEach(function(w) {
-    var wFirst = new Date(w.events[0].date+'T12:00:00');
-    var wLast  = new Date(w.events[w.events.length-1].date+'T12:00:00');
-    var nearbyArtists = new Set();
-    windows.forEach(function(w2) {
-      if (w2 === w || w2.city !== w.city) return;
-      var w2First = new Date(w2.events[0].date+'T12:00:00');
-      var w2Last  = new Date(w2.events[w2.events.length-1].date+'T12:00:00');
-      // Overlap or within 7 days of each other
-      var gap = Math.min(
-        Math.abs(w2First - wLast),
-        Math.abs(wFirst  - w2Last)
-      ) / 86400000;
-      if (gap <= 7) {
-        w2.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
-          nearbyArtists.add(e.artist||e.name);
-        });
-      }
-    });
-    // Also add this window's own artists
+    var acts = new Set();
     w.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
-      nearbyArtists.add(e.artist||e.name);
+      acts.add((e.artist||e.name||'').toLowerCase());
     });
-    w.primaryHits = nearbyArtists.size;
+    w.primaryHits = acts.size;
     w.score = w.primaryHits >= 3 ? 90 : w.primaryHits === 2 ? 60 : 30;
   });
 
