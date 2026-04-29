@@ -962,7 +962,7 @@ function runMatches(){
   }
 
   // (per-artist split removed; trip-window grouping handles this natively)
-  windows.sort(function(a,b){return b.score-a.score||a.start-b.start;});
+  windows.sort(function(a,b){return b.score-a.score||(a.start<b.start?-1:a.start>b.start?1:0);});
   if(S.anyCity){
     var cityCounts={};windows.forEach(function(w){cityCounts[w.city]=(cityCounts[w.city]||0)+w.events.length;});
     var top20=Object.keys(cityCounts).sort(function(a,b){return cityCounts[b]-cityCounts[a];}).slice(0,20);
