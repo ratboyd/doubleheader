@@ -962,7 +962,8 @@ function runMatches(){
   }
 
   // (per-artist split removed; trip-window grouping handles this natively)
-  windows.sort(function(a,b){return b.score-a.score||(a.start<b.start?-1:a.start>b.start?1:0);});
+  function w2s(w){var d=w.events.slice().sort(function(a,b){return a.date<b.date?-1:1;});return d[0]?d[0].date:w.start||'';}
+  windows.sort(function(a,b){var da=w2s(a),db=w2s(b);return b.score-a.score||(da<db?-1:da>db?1:0);});
   if(S.anyCity){
     var cityCounts={};windows.forEach(function(w){cityCounts[w.city]=(cityCounts[w.city]||0)+w.events.length;});
     var top20=Object.keys(cityCounts).sort(function(a,b){return cityCounts[b]-cityCounts[a];}).slice(0,20);
@@ -974,14 +975,17 @@ function runMatches(){
   
 
   
-  // Score each window by unique non-broad acts it contains
+  // Score: primary acts (exact search) + whether broad acts exist lifts the score
   windows.forEach(function(w) {
-    var acts = new Set();
-    w.events.filter(function(e){return !e.broadMatch;}).forEach(function(e){
-      acts.add((e.artist||e.name||'').toLowerCase());
+    var primaryActs = new Set();
+    var hasBroad = false;
+    w.events.forEach(function(e){
+      if (!e.broadMatch) primaryActs.add((e.artist||e.name||'').toLowerCase());
+      else hasBroad = true;
     });
-    w.primaryHits = acts.size;
-    w.score = w.primaryHits >= 3 ? 90 : w.primaryHits === 2 ? 60 : 30;
+    w.primaryHits = primaryActs.size;
+    var totalActs = primaryActs.size + (hasBroad ? 1 : 0);
+    w.score = totalActs >= 3 ? 90 : totalActs >= 2 ? 60 : 30;
   });
 
 cached=windows;
@@ -1145,7 +1149,7 @@ function switchView(id,btn){
 }
 function sortMatches(val){
   var s=cached.slice();
-  if(val==='date')s.sort(function(a,b){return a.start-b.start;});
+  if(val==='date')s.sort(function(a,b){var da=w2s(a),db=w2s(b);return da<db?-1:da>db?1:0;});
   else if(val==='city')s.sort(function(a,b){return a.city.localeCompare(b.city);});
   else s.sort(function(a,b){return b.score-a.score;});
   renderGrid(s);
