@@ -106,7 +106,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .mcard-head{padding:13px 15px 9px;display:flex;justify-content:space-between;align-items:flex-start}
 .mcard-city{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.3px}
 .mcard-dates{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);margin-top:2px}
-.score-num{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;text-align:right;line-height:1.2}
+.score-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;text-align:right;line-height:1}
 .score-num.triple{color:var(--teal)}.score-num.double{color:var(--purple)}.score-num.single{color:var(--ink3)}
 .score-lbl{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;text-align:right}
 .mcard-events{padding:0 15px 13px;display:flex;flex-direction:column;gap:5px}
@@ -1143,23 +1143,29 @@ function buildCard(w){
     }
   }
 
-  // Cap at 4 events, prioritising: non-broad first, then by artist popularity rank
+  // Cap at 4 events: one entry per unique act, prefer non-broad + popular + spread across dates
   var artistRank=function(e){
     var n=(e.artist||e.name||'').toLowerCase();
-    var idx=ALL_ARTISTS.findIndex(function(a){return a.toLowerCase()===n;});
-    return idx>=0?idx:9999;
+    var i=ALL_ARTISTS.findIndex(function(a){return a.toLowerCase()===n;});
+    return i>=0?i:9999;
   };
-  var cappedEvents=w.events.slice().sort(function(a,b){
-    // Primary: non-broad before broad
+  // One row per unique act (keep earliest date occurrence)
+  var actSeen={};
+  var dedupedEvs=w.events.slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);})
+    .filter(function(e){
+      var k=(e.artist||e.name||'').toLowerCase();
+      if(actSeen[k])return false;
+      actSeen[k]=true;
+      return true;
+    });
+  // Now rank: non-broad first, then by popularity
+  dedupedEvs.sort(function(a,b){
     if(!a.broadMatch&&b.broadMatch)return -1;
     if(a.broadMatch&&!b.broadMatch)return 1;
-    // Secondary: popularity rank
-    var ra=artistRank(a),rb=artistRank(b);
-    if(ra!==rb)return ra-rb;
-    // Tertiary: date
-    return new Date(a.date)-new Date(b.date);
-  }).slice(0,4);
-  // Re-sort the capped set by date for display
+    return artistRank(a)-artistRank(b);
+  });
+  var cappedEvents=dedupedEvs.slice(0,4);
+  // Re-sort by date for display
   var evs=cappedEvents.slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);}).map(function(e){
     var allDates=LIVE_EVENTS.filter(function(f){
       if(f.city!==w.city||f.name!==e.name)return false;
@@ -1180,7 +1186,7 @@ function buildCard(w){
     return '<div class="mevent '+typeClass+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+broadTag+subNote+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dLabel+'</div>'+ticketLink+'</div>';
   }).join('');
 
-  return '<div class="mcard '+tier+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+(w.isAnyCity?'<span class="anywhere-pill">Anywhere</span>':'')+'</div><div class="mcard-dates">'+dateStr+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+tl+'</div><div class="score-lbl">&nbsp;</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot">'+flightHtml+'<div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
+  return '<div class="mcard '+tier+'"><div class="mcard-head"><div><div class="mcard-city">'+w.city+(w.isAnyCity?'<span class="anywhere-pill">Anywhere</span>':'')+'</div><div class="mcard-dates">'+dateStr+'</div></div><div style="text-align:right"><div class="score-num '+tier+'">'+sc+'/4</div><div class="score-lbl">score</div></div></div><div class="mcard-events">'+evs+'</div><div class="mcard-foot">'+flightHtml+'<div class="tier-pill '+tier+'">'+tl+'</div></div></div>';
 }
 
 function renderGrid(wins){
