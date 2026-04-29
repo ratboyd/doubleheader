@@ -586,7 +586,7 @@ var ALL_LEAGUES = ['NHL','NBA','NFL','MLB','MLS'];
 
 // Quick-add suggestions — artists currently touring NA in 2026, popular teams
 var CITY_S   = ['Las Vegas','New York','Chicago','Nashville','Los Angeles','Miami','Dallas','Atlanta','Seattle','Denver'];
-var ARTIST_S = ['Taylor Swift','Kendrick Lamar','Billie Eilish','Post Malone','Sabrina Carpenter','Hozier','Noah Kahan','Lainey Wilson','Jelly Roll','The Weeknd','Zach Bryan','Chappell Roan','Gracie Abrams','Olivia Rodrigo','Luke Combs','Morgan Wallen','Metallica','Green Day','Benson Boone','Teddy Swims'];
+var ARTIST_S = ['Taylor Swift','The Weeknd','Kendrick Lamar','Billie Eilish','Post Malone','Sabrina Carpenter','Luke Combs','Morgan Wallen','Zach Bryan','Chappell Roan','Noah Kahan','Jelly Roll','Olivia Rodrigo','Hozier','Lainey Wilson','Hardy','Cody Johnson','Green Day','Metallica','Ed Sheeran'];
 var TEAM_S   = ['Vegas Golden Knights','Edmonton Oilers','Toronto Maple Leafs','Dallas Stars','Colorado Avalanche','Minnesota Wild','Boston Bruins','Florida Panthers','Carolina Hurricanes','Tampa Bay Lightning'];
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────────────────────────
@@ -1061,6 +1061,13 @@ function runMatches(){
         if(goodGenres.some(function(ag){return g.includes(ag);}))affinityMatch=true;
       });
     });
+    // Popularity boost: window with a top-20 artist ranks higher than unknown acts
+    var hasTopArtist=w.events.some(function(e){
+      var n=(e.artist||e.name||'').toLowerCase();
+      var rank=ALL_ARTISTS.findIndex(function(a){return a.toLowerCase()===n;});
+      return rank>=0&&rank<20;
+    });
+    if(hasTopArtist&&w.score<4)w.score=Math.min(w.score+0.5,4);
     // Boost score by 1 for affinity match (e.g. Stars + Zach Top beats Stars + symphony)
     if(affinityMatch)w.score=Math.min(w.score+1,4);
     w.affinityMatch=affinityMatch;
@@ -1136,7 +1143,24 @@ function buildCard(w){
     }
   }
 
-  var evs=w.events.slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);}).map(function(e){
+  // Cap at 4 events, prioritising: non-broad first, then by artist popularity rank
+  var artistRank=function(e){
+    var n=(e.artist||e.name||'').toLowerCase();
+    var idx=ALL_ARTISTS.findIndex(function(a){return a.toLowerCase()===n;});
+    return idx>=0?idx:9999;
+  };
+  var cappedEvents=w.events.slice().sort(function(a,b){
+    // Primary: non-broad before broad
+    if(!a.broadMatch&&b.broadMatch)return -1;
+    if(a.broadMatch&&!b.broadMatch)return 1;
+    // Secondary: popularity rank
+    var ra=artistRank(a),rb=artistRank(b);
+    if(ra!==rb)return ra-rb;
+    // Tertiary: date
+    return new Date(a.date)-new Date(b.date);
+  }).slice(0,4);
+  // Re-sort the capped set by date for display
+  var evs=cappedEvents.slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);}).map(function(e){
     var allDates=LIVE_EVENTS.filter(function(f){
       if(f.city!==w.city||f.name!==e.name)return false;
       var fd2=new Date(f.date+'T12:00:00'),we=new Date(w.start);we.setDate(we.getDate()+6);
