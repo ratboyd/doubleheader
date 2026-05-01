@@ -1122,8 +1122,7 @@ function fmtY(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLoc
 function buildCard(w){
   var sc=w.score||1;
   var tier=sc>=4?'triple':sc>=3?'triple':sc>=2?'double':'single';
-  var tl=w.hasSameDay?'Same-day':sc>=4?'Grand Slam':sc>=3?'Triple':sc>=2?'Double':'Single';
-  if(w.hasBroad&&sc<2)tl='Broad match';
+  var tl=sc>=4?'Grand Slam':sc>=3?'Triple':sc>=2?'Double':'Single';
   var primaryHits=w.primaryHits||1;
   var fd=w.firstDate||w.start,ld=w.lastDate||w.start;
   var dateStr=fmt(fd)===fmt(ld)?fmtY(fd):fmt(fd)+' – '+fmtY(ld);
