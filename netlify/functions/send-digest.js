@@ -48,8 +48,8 @@ function buildDigestHtml(windows, homeCity) {
           <div style="font-size:12px;color:#666;margin-top:2px;">${dateRange}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:22px;font-weight:900;color:#d4a843;">${w.score}</div>
-          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;">score</div>
+          <div style="font-size:12px;font-weight:900;color:#d4a843;text-transform:uppercase;letter-spacing:.05em;">${w.hasSameDay ? 'Same-day Double' : w.score >= 4 ? 'Grand Slam' : w.score >= 3 ? 'Triple' : w.score >= 2 ? 'Double' : 'Single'}</div>
+          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;">&nbsp;</div>
         </div>
       </div>
       ${eventRows}

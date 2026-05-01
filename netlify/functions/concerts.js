@@ -29,8 +29,8 @@ export default async (req, context) => {
     "country":"KnvZfZ7vAv6","rock":"KnvZfZ7vAeJ","pop":"KnvZfZ7vAev",
     "edm":"KnvZfZ7vAvF","electronic":"KnvZfZ7vAvF","hiphop":"KnvZfZ7vAv1",
     "hip-hop":"KnvZfZ7vAv1","rnb":"KnvZfZ7vAvv","r&b":"KnvZfZ7vAvv",
-    "jazz":"KnvZfZ7vAvE","classical":"KnvZfZ7vAeI","metal":"KnvZfZ7vAv6",
-    "folk":"KnvZfZ7vAv6","indie":"KnvZfZ7vAeJ","alternative":"KnvZfZ7vAeJ",
+    "jazz":"KnvZfZ7vAvE","classical":"KnvZfZ7vAeI","metal":null,
+    "folk":null,"indie":"KnvZfZ7vAeJ","alternative":"KnvZfZ7vAeJ",
   };
 
   const LEAGUE_SUBGENRES = {
@@ -69,7 +69,7 @@ export default async (req, context) => {
     params.set("classificationName", "Music");
     const gid = GENRE_IDS[genre.toLowerCase()];
     if (gid) params.set("genreId", gid);
-    else params.set("keyword", genre);
+    else { params.set("keyword", genre); params.set("classificationName", "Music"); }
   } else if (league) {
     const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
     if (sg) params.set("subGenreId", sg);
