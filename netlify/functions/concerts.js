@@ -124,6 +124,18 @@ export default async (req, context) => {
     ];
     const filteredEvents = events.filter(ev => {
       if (isClassical(ev)) return false;
+      // For genre keyword searches (null genreId), validate the returned event
+      // actually matches the genre — prevents Blake Shelton showing up for "metal"
+      if (genre && !GENRE_IDS[genre.toLowerCase()]) {
+        const evGenre = (ev.genre + " " + ev.subgenre).toLowerCase();
+        const searchGenre = genre.toLowerCase();
+        const GENRE_SYNONYMS = {
+          metal: ["metal", "hard rock", "heavy metal", "punk", "alternative"],
+          folk: ["folk", "acoustic", "americana", "bluegrass", "country folk"],
+        };
+        const validTerms = GENRE_SYNONYMS[searchGenre] || [searchGenre];
+        if (!validTerms.some(t => evGenre.includes(t))) return false;
+      }
       const nameLower = ev.name.toLowerCase();
       const artistLower = (ev.artist || '').toLowerCase();
       // For artist searches: drop if name contains tribute words
