@@ -1020,11 +1020,21 @@ function runMatches(){
     w.primaryHits = primaryActs.size;
     w.hasBroad = broadActs.size > 0;
     w.hasSameDay = hasSameDay;
-    // Score = number of distinct event DATES (not acts).
-    // Same-night events are mutually exclusive - attending one means missing the other.
-    // 1 date = Single, 2 dates = Double, 3 dates = Triple, 4+ = Grand Slam
-    var distinctDates = new Set(w.events.map(function(e){return e.date;})).size;
-    var totalActs = Math.min(distinctDates + (w.hasBroad && distinctDates < 4 ? 1 : 0), 4);
+    // Score = unique acts on non-overlapping dates.
+    // Bryan Adams 3 nights = 1 act = Single.
+    // Bryan Adams + Dallas Stars on different nights = 2 acts = Double.
+    // Two acts on the SAME night = still 1 scoreable night (can only attend one).
+    var actDateMap = {};
+    w.events.forEach(function(e){
+      var act = (e.artist||e.name||'').toLowerCase();
+      if (!actDateMap[act]) actDateMap[act] = e.date;
+    });
+    var uniqueActDates = Object.values(actDateMap);
+    var scorableDates = new Set(uniqueActDates).size;
+    var uniqueActs = Object.keys(actDateMap).length;
+    // Use unique acts if multiple acts on different dates, else use 1
+    var baseScore = Math.min(uniqueActs, scorableDates);
+    var totalActs = Math.min(baseScore + (w.hasBroad && baseScore < 4 ? 1 : 0), 4);
     w.score = Math.min(totalActs, 4);
   });
   // Genre affinity: sports teams signal music genre preferences
