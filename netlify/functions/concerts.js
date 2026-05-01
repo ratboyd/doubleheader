@@ -178,6 +178,14 @@ export default async (req, context) => {
     });
 
 
+    // City post-filter: TM keyword searches sometimes ignore city param
+    if (city) {
+      const cityLower = city.toLowerCase().trim();
+      filteredEvents = filteredEvents.filter(ev => 
+        ev.city.toLowerCase().includes(cityLower) || cityLower.includes(ev.city.toLowerCase())
+      );
+    }
+
     // Deduplicate by artist+date+city: for each group, prefer the canonical show
     // (exact artist name match) over suite reservations, 2-day bundle tickets, etc.
     const BUNDLE_WORDS = ['suite reservation', '2-day ticket', '2day ticket', 'cannot split',
