@@ -1020,9 +1020,12 @@ function runMatches(){
     w.primaryHits = primaryActs.size;
     w.hasBroad = broadActs.size > 0;
     w.hasSameDay = hasSameDay;
-    var totalActs = primaryActs.size + (broadActs.size > 0 ? 1 : 0);
-    // Score: each unique act = 1 point base, same-day combo bonus
-    w.score = Math.min(totalActs + (hasSameDay ? 1 : 0), 4);
+    // Score = number of distinct event DATES (not acts).
+    // Same-night events are mutually exclusive - attending one means missing the other.
+    // 1 date = Single, 2 dates = Double, 3 dates = Triple, 4+ = Grand Slam
+    var distinctDates = new Set(w.events.map(function(e){return e.date;})).size;
+    var totalActs = Math.min(distinctDates + (w.hasBroad && distinctDates < 4 ? 1 : 0), 4);
+    w.score = Math.min(totalActs, 4);
   });
   // Genre affinity: sports teams signal music genre preferences
   // If user has teams, boost windows where music genre matches team vibe
