@@ -1119,7 +1119,7 @@ cached=windows;
   document.getElementById('noticeArea').innerHTML=notices.join('');
 
   document.getElementById('matchTitle').textContent=windows.length===0?'No matches yet':windows.length+' match'+(windows.length!==1?'es':'')+' found';
-  document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength — doubleheaders first. Dashed borders = broad interest matches.':'Add cities and artists/teams, then click Find matches.';
+  document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength — doubleheaders first.':'Add cities and artists/teams, then click Find matches.';
   document.getElementById('resultsState').style.display='block';
 
   renderGrid(windows);
