@@ -2,6 +2,7 @@
   "name": "doubleheader",
   "version": "1.0.0",
   "description": "Find weekends where your favourite artists and teams align",
+  "type": "module",
   "scripts": {
     "dev": "netlify dev",
     "build": "echo 'Static site - no build step'"
