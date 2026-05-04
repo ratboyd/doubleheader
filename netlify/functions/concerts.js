@@ -70,7 +70,6 @@ export default async (req, context) => {
     const gid = GENRE_IDS[genre.toLowerCase()];
     if (gid) params.set("genreId", gid);
     else { params.set("keyword", genre); params.set("classificationName", "Music"); }
-    else { params.set("keyword", genre); params.set("classificationName", "Music"); }
   } else if (league) {
     const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
     if (sg) params.set("subGenreId", sg);
