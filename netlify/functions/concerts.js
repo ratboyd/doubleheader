@@ -70,7 +70,6 @@ export default async (req, context) => {
     const gid = GENRE_IDS[genre.toLowerCase()];
     if (gid) params.set("genreId", gid);
     else { params.set("keyword", genre); params.set("classificationName", "Music"); }
-    else { params.set("keyword", genre); params.set("classificationName", "Music"); }
   } else if (league) {
     const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
     if (sg) params.set("subGenreId", sg);
@@ -107,7 +106,7 @@ export default async (req, context) => {
       };
     });
 
-    // ── POST-FILTERS ─────────────────────────────────────────────────────────
+    // ââ POST-FILTERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
     // 1. Drop tribute/cover acts for artist searches
     // Classical/orchestral events that TM miscategorizes under Rock/Pop etc.
     const CLASSICAL_WORDS = ['symphony', 'orchestra', 'philharmonic', 'ballet',
@@ -125,7 +124,7 @@ export default async (req, context) => {
     const filteredEvents = events.filter(ev => {
       if (isClassical(ev)) return false;
       // For genre keyword searches (null genreId), validate the returned event
-      // actually matches the genre — prevents Blake Shelton showing up for "metal"
+      // actually matches the genre â prevents Blake Shelton showing up for "metal"
       if (genre && !GENRE_IDS[genre.toLowerCase()]) {
         const evGenre = (ev.genre + " " + ev.subgenre).toLowerCase();
         const searchGenre = genre.toLowerCase();
@@ -140,14 +139,14 @@ export default async (req, context) => {
       const artistLower = (ev.artist || '').toLowerCase();
       // For artist searches: drop if name contains tribute words
       if (artist) {
-        // Drop tribute/cover/package words — but only check event name, not attraction
+        // Drop tribute/cover/package words â but only check event name, not attraction
         const ARTIST_TRIBUTE = ['tribute', 'salute to', 'a night of', 'the music of',
           'performs ', 'symphony', 'orchestral', 'featuring songs of', 'celebration of',
           'dance night', 'ticket + hotel', 'hotel deal', 'hotel package', 'vip package',
           'allstars', 'all stars', 'all-stars', 'best of the', 'greatest hits of',
           'punk brunch', 'vs ', 'vs.'];
         if (ARTIST_TRIBUTE.some(w => nameLower.includes(w))) return false;
-        // Require artist name match — attraction must start with or equal search term
+        // Require artist name match â attraction must start with or equal search term
         // (prevents "The Long Run: Experience the Eagles" matching "Eagles")
         const searchLower = artist.toLowerCase();
         const attractionMatch = artistLower === searchLower ||
