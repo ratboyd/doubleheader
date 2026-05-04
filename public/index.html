@@ -1026,7 +1026,7 @@ function runMatches(){
     // Two acts on the SAME night = still 1 scoreable night (can only attend one).
     var actDateMap = {};
     w.events.forEach(function(e){
-      var rawAct = (e.artist||e.name||''); var act = (e.type==='team' ? rawAct.split(/\s*[:\-]\s*/)[0] : rawAct).toLowerCase().trim();
+      var rawAct = (e.artist||e.name||''); var act = (e.type==='team' ? (rawAct.split(/\s+vs\.?\s+/i)[1]||rawAct).split(':')[0].trim() : rawAct).toLowerCase().trim();
       if (!actDateMap[act]) actDateMap[act] = e.date;
     });
     var uniqueActDates = Object.values(actDateMap);
