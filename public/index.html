@@ -249,7 +249,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="tags" id="cityTags"></div>
       <div class="divider"></div>
 
-      <!-- ARTISTS — primary -->
+      <!-- ARTISTS â primary -->
       <div class="sb-head"><span class="sb-label primary">Artists I want to see</span><span class="sb-count" id="artistCount">0/10</span></div>
       <div class="ac-wrap">
         <div class="add-row">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="qa-wrap" id="artistQA"></div>
       <div class="tags" id="artistTags"></div>
 
-      <!-- GENRES — broad, lower weight -->
+      <!-- GENRES â broad, lower weight -->
       <div class="divider soft"></div>
       <div class="sb-head"><span class="sb-label broad">Also open to genres <span style="font-style:italic;font-weight:400">(lower weight)</span></span></div>
       <div class="broad-note">Results appear, but score less than artists you're specifically following.</div>
@@ -271,7 +271,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="tags" id="genreTags"></div>
       <div class="divider"></div>
 
-      <!-- TEAMS — primary -->
+      <!-- TEAMS â primary -->
       <div class="sb-head"><span class="sb-label primary">Teams I follow</span><span class="sb-count" id="teamCount">0/10</span></div>
       <div class="ac-wrap">
         <div class="add-row">
@@ -284,17 +284,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="qa-wrap" id="teamQA"></div>
       <div class="tags" id="teamTags"></div>
 
-      <!-- LEAGUES — broad, lower weight -->
+      <!-- LEAGUES â broad, lower weight -->
       <div class="divider soft"></div>
       <div class="sb-head"><span class="sb-label broad">Also catch games if I'm there <span style="font-style:italic;font-weight:400">(lower weight)</span></span></div>
-      <div class="broad-note">Good for baseball in the sun or playoff hockey — surfaces games without dominating results.</div>
+      <div class="broad-note">Good for baseball in the sun or playoff hockey â surfaces games without dominating results.</div>
       <div class="qa-wrap" id="leagueQA"></div>
       <div class="tags" id="leagueTags"></div>
       <div class="divider"></div>
 
-      <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches →</button>
+      <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches â</button>
 
-      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
+      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">â</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
     </div>
   </aside>
 
@@ -304,7 +304,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9a9690" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </div>
       <h2>Your matches will appear here</h2>
-      <p>Add your home city, cities you'd travel to, artists you follow, and sports teams — then hit <strong>Find matches</strong>. We pull live tour dates and game schedules. Add broad genres or leagues to surface bonus options at lower weight.</p>
+      <p>Add your home city, cities you'd travel to, artists you follow, and sports teams â then hit <strong>Find matches</strong>. We pull live tour dates and game schedules. Add broad genres or leagues to surface bonus options at lower weight.</p>
     </div>
 
     <div id="loadingState" class="loading-state" style="display:none">
@@ -332,7 +332,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
           <select class="sort-sel" onchange="sortMatches(this.value)">
             <option value="score">Best overlap first</option>
             <option value="date">Soonest first</option>
-            <option value="city">City A–Z</option>
+            <option value="city">City AâZ</option>
           </select>
         </div>
         <div class="grid" id="matchGrid"></div>
@@ -357,7 +357,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 </div>
 
 <script>
-// ── STATE ─────────────────────────────────────────────────────────────────────
+// ââ STATE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var S = { cities:[], artists:[], teams:[], genres:[], leagues:[], home:'' };
 var _today=new Date(); var _end=new Date(_today); _end.setFullYear(_today.getFullYear()+1);
 S.dateStart=_today.toISOString().split('T')[0]; S.dateEnd=_end.toISOString().split('T')[0];
@@ -368,10 +368,10 @@ var LIVE_EVENTS = [];
 var cached = [];
 var isFetching = false;
 
-// ── SCORING WEIGHTS ────────────────────────────────────────────────────────────
+// ââ SCORING WEIGHTS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var WEIGHT = { artist:1.0, team:1.0, genre:0.5, league:0.5 };
 
-// ── FLIGHT DATA FROM YYC ──────────────────────────────────────────────────────
+// ââ FLIGHT DATA FROM YYC ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var YYC = {
   'Vancouver':1.2,'Victoria':1.1,'Kelowna':0.8,'Edmonton':0.7,'Saskatoon':1.3,
   'Regina':1.5,'Winnipeg':2.1,'Toronto':3.8,'Ottawa':4.0,'Montreal':4.2,'Halifax':4.8,
@@ -399,7 +399,7 @@ function getFlight(city) {
   return null;
 }
 
-// City name → IATA airport code (major North American cities)
+// City name â IATA airport code (major North American cities)
 var CITY_IATA = {
   'calgary':'YYC','edmonton':'YEG','vancouver':'YVR','victoria':'YYJ','kelowna':'YLW',
   'kamloops':'YKA','saskatoon':'YXE','regina':'YQR','winnipeg':'YWG','thunder bay':'YQT',
@@ -441,7 +441,7 @@ function formatCardDate(d1, d2) {
   if (!d2 || d1 === d2) return startStr + ', ' + start.getFullYear();
   const end = new Date(d2 + 'T12:00:00');
   const endStr = days[end.getDay()] + ' ' + months[end.getMonth()] + ' ' + end.getDate();
-  return startStr + ' – ' + endStr + ', ' + end.getFullYear();
+  return startStr + ' â ' + endStr + ', ' + end.getFullYear();
 }
 
 function getSkyscannerUrl(city, firstDate, lastDate) {
@@ -469,7 +469,7 @@ function getSkyscannerUrl(city, firstDate, lastDate) {
   return base + params;
 }
 
-// ── GEOLOCATION ───────────────────────────────────────────────────────────────
+// ââ GEOLOCATION âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function tryGeo() {
   var btn = document.getElementById('geoBtn');
   btn.textContent = 'Detecting...';
@@ -488,7 +488,7 @@ function tryGeo() {
         if (city) {
           document.getElementById('homeInput').value = city + country;
           updateProgress();
-          btn.textContent = '✓ Location set';
+          btn.textContent = 'â Location set';
           setTimeout(function(){ btn.style.display='none'; }, 1500);
         } else {
           btn.textContent = 'Could not detect city';
@@ -499,7 +499,7 @@ function tryGeo() {
   });
 }
 
-// ── AUTOCOMPLETE DATASETS ─────────────────────────────────────────────────────
+// ââ AUTOCOMPLETE DATASETS âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var ALL_CITIES = [
   'Calgary','Edmonton','Vancouver','Victoria','Kelowna','Kamloops','Saskatoon','Regina',
   'Winnipeg','Thunder Bay','Sudbury','Toronto','Ottawa','Montreal','Quebec City','Halifax',
@@ -584,12 +584,12 @@ var ALL_ARTISTS = [
 var ALL_GENRES = ['Country','Rock','Pop','EDM','Hip-Hop','R&B','Jazz','Classical','Metal','Folk','Indie','Alternative'];
 var ALL_LEAGUES = ['NHL','NBA','NFL','MLB','MLS'];
 
-// Quick-add suggestions — artists currently touring NA in 2026, popular teams
+// Quick-add suggestions â artists currently touring NA in 2026, popular teams
 var CITY_S   = ['Las Vegas','New York','Chicago','Nashville','Los Angeles','Miami','Dallas','Atlanta','Seattle','Denver'];
 var ARTIST_S = ['Taylor Swift','The Weeknd','Kendrick Lamar','Billie Eilish','Post Malone','Sabrina Carpenter','Luke Combs','Morgan Wallen','Zach Bryan','Chappell Roan','Noah Kahan','Jelly Roll','Olivia Rodrigo','Hozier','Lainey Wilson','Hardy','Cody Johnson','Green Day','Metallica','Ed Sheeran'];
 var TEAM_S   = ['Vegas Golden Knights','Edmonton Oilers','Toronto Maple Leafs','Dallas Stars','Colorado Avalanche','Minnesota Wild','Boston Bruins','Florida Panthers','Carolina Hurricanes','Tampa Bay Lightning'];
 
-// ── AUTOCOMPLETE ──────────────────────────────────────────────────────────────
+// ââ AUTOCOMPLETE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var acFocusIdx = {city:-1,artist:-1,team:-1};
 var acBlurTimer = {};
 
@@ -675,7 +675,7 @@ function acHomeKey(e){
 function acHomePick(val){ document.getElementById('homeInput').value=val;document.getElementById('ac-home').classList.remove('open');acHomeFocusIdx=-1;updateProgress(); }
 function acHomeBlur(){ setTimeout(function(){var drop=document.getElementById('ac-home');if(drop)drop.classList.remove('open');updateProgress();},150); }
 
-// ── TAGS / COUNTS / QA CHIPS ──────────────────────────────────────────────────
+// ââ TAGS / COUNTS / QA CHIPS ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function initQA(elId,items,type,broad){
   document.getElementById(elId).innerHTML=items.map(function(s){
     return '<button class="qa'+(broad?' broad':'')+'" id="qid-'+type+'-'+esc(s)+'" onclick="quickAdd(\''+type+'\',\''+s+'\')">'+s+'</button>';
@@ -728,7 +728,7 @@ function removeItem(type,val){
 function renderTags(type){
   var el=document.getElementById(type+'Tags');
   el.innerHTML=getArr(type).map(function(v){
-    return '<div class="tag '+type+'"><span>'+v+'</span><button class="tag-x" onclick="removeItem(\''+type+'\',\''+v+'\')">×</button></div>';
+    return '<div class="tag '+type+'"><span>'+v+'</span><button class="tag-x" onclick="removeItem(\''+type+'\',\''+v+'\')">Ã</button></div>';
   }).join('');
 }
   if(typeof refreshQA==='function')refreshQA(type);
@@ -744,12 +744,12 @@ function updateProgress(){
   for(var i=0;i<4;i++)document.getElementById('ps'+(i+1)).className='ps'+(steps[i]?' done':'');
 }
 
-// ── IS NETLIFY ────────────────────────────────────────────────────────────────
+// ââ IS NETLIFY ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function isNetlify(){
   return window.location.hostname!=='localhost'&&!window.location.protocol.startsWith('file');
 }
 
-// ── API CALLS ─────────────────────────────────────────────────────────────────
+// ââ API CALLS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function fetchConcerts(artist,startDate,endDate){
   if(!isNetlify()) return getMockEvents('artist', artist);
   try{
@@ -807,7 +807,7 @@ async function fetchLeague(league, cities){
   return results;
 }
 
-// ── MOCK DATA ─────────────────────────────────────────────────────────────────
+// ââ MOCK DATA âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 var MOCK = [
   {city:'Las Vegas',date:'2026-06-03',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn',note:'Bare Bones Acoustic'},
   {city:'Las Vegas',date:'2026-06-04',name:'Bryan Adams',type:'artist',venue:'Encore Theater at Wynn',note:'Bare Bones Acoustic'},
@@ -856,7 +856,7 @@ function getMockEvents(type, name){
   }).map(function(e){ return Object.assign({},e,{broadMatch:false,weight:1.0}); });
 }
 
-// ── MAIN FIND FLOW ────────────────────────────────────────────────────────────
+// ââ MAIN FIND FLOW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function findMatches(){
   S.home=document.getElementById('homeInput').value.trim();
   var hasAny=S.cities.length||S.artists.length||S.teams.length||S.genres.length||S.leagues.length;
@@ -899,7 +899,7 @@ async function findMatches(){
 
 function setNavStatus(state,msg){ var el=document.getElementById('navStatus');el.textContent=msg;el.className='nav-status'+(state?' '+state:''); }
 
-// ── MATCHING ENGINE ───────────────────────────────────────────────────────────
+// ââ MATCHING ENGINE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function runMatches(){
   var today=new Date().toISOString().split('T')[0];
   var uc=S.cities.map(function(c){return (c.name||c).toLowerCase();});
@@ -1026,7 +1026,7 @@ function runMatches(){
     // Two acts on the SAME night = still 1 scoreable night (can only attend one).
     var actDateMap = {};
     w.events.forEach(function(e){
-      var act = (e.artist||e.name||'').toLowerCase();
+      var rawAct = (e.artist||e.name||''); var act = (e.type==='team' ? rawAct.split(/\s*[:\-]\s*/)[0] : rawAct).toLowerCase().trim();
       if (!actDateMap[act]) actDateMap[act] = e.date;
     });
     var uniqueActDates = Object.values(actDateMap);
@@ -1105,21 +1105,21 @@ cached=windows;
   // Notices
   var notices=[];
   if(S.teams.some(function(t){return t.toLowerCase()==='calgary flames';})){
-    notices.push('<div class="notice"><div>🔔</div><div><strong>Calgary Flames missed the 2026 playoffs</strong><span>Set an alert for when the 2026–27 schedule drops.</span></div></div>');
+    notices.push('<div class="notice"><div>ð</div><div><strong>Calgary Flames missed the 2026 playoffs</strong><span>Set an alert for when the 2026â27 schedule drops.</span></div></div>');
   }
   if(!isNetlify()){
-    notices.push('<div class="notice info"><div>ℹ️</div><div><strong>Preview mode — using built-in data</strong><span>Deploy to Netlify with your TICKETMASTER_KEY for live dates. Genre & league results only appear in live mode.</span></div></div>');
+    notices.push('<div class="notice info"><div>â¹ï¸</div><div><strong>Preview mode â using built-in data</strong><span>Deploy to Netlify with your TICKETMASTER_KEY for live dates. Genre & league results only appear in live mode.</span></div></div>');
   }
   var citiesWithMatches={};
   windows.forEach(function(w){citiesWithMatches[w.city.toLowerCase()]=true;});
   var noMatch=S.cities.filter(function(c){return !citiesWithMatches[c.toLowerCase()];});
   if(noMatch.length){
-    notices.push('<div class="notice"><div>🔍</div><div><strong>No matches in: '+noMatch.join(', ')+'</strong><span>Your followed artists and teams don\'t have events there in the current window.</span></div></div>');
+    notices.push('<div class="notice"><div>ð</div><div><strong>No matches in: '+noMatch.join(', ')+'</strong><span>Your followed artists and teams don\'t have events there in the current window.</span></div></div>');
   }
   document.getElementById('noticeArea').innerHTML=notices.join('');
 
   document.getElementById('matchTitle').textContent=windows.length===0?'No matches yet':windows.length+' match'+(windows.length!==1?'es':'')+' found';
-  document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength — doubleheaders first.':'Add cities and artists/teams, then click Find matches.';
+  document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength â doubleheaders first.':'Add cities and artists/teams, then click Find matches.';
   document.getElementById('resultsState').style.display='block';
 
   renderGrid(windows);
@@ -1128,7 +1128,7 @@ cached=windows;
   renderByTeam(windows);
 }
 
-// ── RENDER ────────────────────────────────────────────────────────────────────
+// ââ RENDER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function fmt(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
 function fmtY(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
 
@@ -1138,7 +1138,7 @@ function buildCard(w){
   var tl=sc>=4?'Grand Slam':sc>=3?'Triple':sc>=2?'Double':'Single';
   var primaryHits=w.primaryHits||1;
   var fd=w.firstDate||w.start,ld=w.lastDate||w.start;
-  var dateStr=fmt(fd)===fmt(ld)?fmtY(fd):fmt(fd)+' – '+fmtY(ld);
+  var dateStr=fmt(fd)===fmt(ld)?fmtY(fd):fmt(fd)+' â '+fmtY(ld);
   var fh=w.fh;
   var firstEventDate = w.events[0] && w.events[0].date ? w.events[0].date : '';
   var lastEventDate = w.events.length > 0 ? (w.events[w.events.length-1].date || firstEventDate) : firstEventDate;
@@ -1150,7 +1150,7 @@ function buildCard(w){
       var skyUrl=getSkyscannerUrl(w.city, firstEventDate, lastEventDate);
       var originIATA=getCityIATA(S.home.split(',')[0].trim());
       var destIATA=getCityIATA(w.city);
-      var flightLabel=fh!==null?'✈ '+originIATA+'→'+destIATA+' ~'+fh+'h':'✈ Search flights';
+      var flightLabel=fh!==null?'â '+originIATA+'â'+destIATA+' ~'+fh+'h':'â Search flights';
       flightHtml='<a class="flight-link" href="'+skyUrl+'" target="_blank">'+flightLabel+'</a>';
     }
   }
@@ -1189,12 +1189,12 @@ function buildCard(w){
       dLabel=new Date(e.date+'T12:00:00').toLocaleDateString('en-CA',{month:'short',day:'numeric'});
     }else{
       var df=new Date(allDates[0]+'T12:00:00'),dl=new Date(allDates[allDates.length-1]+'T12:00:00');
-      dLabel=fmt(df)+(fmt(df)!==fmt(dl)?' – '+fmt(dl):'')+(allDates.length>1?' ('+allDates.length+'n)':'');
+      dLabel=fmt(df)+(fmt(df)!==fmt(dl)?' â '+fmt(dl):'')+(allDates.length>1?' ('+allDates.length+'n)':'');
     }
     var typeClass=e.broadMatch?'type-broad':('type-'+e.type);
     var broadTag=e.broadMatch?'<span class="broad-tag">'+e.broadLabel+'</span>':'';
-    var ticketLink=e.url?'<a class="me-link" href="'+e.url+'" target="_blank">Tickets →</a>':'';
-    var subNote=e.note&&!e.broadMatch?' <span style="font-weight:300;opacity:.6">· '+e.note+'</span>':'';
+    var ticketLink=e.url?'<a class="me-link" href="'+e.url+'" target="_blank">Tickets â</a>':'';
+    var subNote=e.note&&!e.broadMatch?' <span style="font-weight:300;opacity:.6">Â· '+e.note+'</span>':'';
     return '<div class="mevent '+typeClass+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+broadTag+subNote+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dLabel+'</div>'+ticketLink+'</div>';
   }).join('');
 
@@ -1203,7 +1203,7 @@ function buildCard(w){
 
 function renderGrid(wins){
   var el=document.getElementById('matchGrid');
-  el.innerHTML=wins.length?wins.map(buildCard).join(''):'<div style="color:var(--ink3);font-size:13px;padding:16px 0;grid-column:1/-1">No matches — try adding more cities, artists, or teams.</div>';
+  el.innerHTML=wins.length?wins.map(buildCard).join(''):'<div style="color:var(--ink3);font-size:13px;padding:16px 0;grid-column:1/-1">No matches â try adding more cities, artists, or teams.</div>';
 }
 function renderByCity(wins){
   var cits=[...new Set(wins.map(function(w){return w.city;}))];
@@ -1358,14 +1358,14 @@ updateProgress();
 <script type="module">
 import { initAuth, bindModalControls, loadPreferences, savePreferences, getUser } from '/auth.js';
 
-// ── Subscription helpers ──────────────────────────────────────────────────
+// ââ Subscription helpers ââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function updateSubscribeBar(hasSub) {
   const bar = document.getElementById('subscribe-bar');
   if (!bar) return;
   const user = getUser();
   if (!user) {
-    // Not logged in — show prompt to log in to subscribe
+    // Not logged in â show prompt to log in to subscribe
     bar.innerHTML = `<span class="sub-status">Want alerts for new matches?</span>
       <button class="sub-btn" onclick="document.getElementById('auth-open-modal')?.click()">Log in to subscribe</button>`;
     bar.classList.add('visible');
@@ -1413,7 +1413,7 @@ window._getUser = getUser;
 window._savePrefs = savePreferences;
 window._hasSub = false;
 
-// ── Hydrate sidebar from saved subscription ───────────────────────────────
+// ââ Hydrate sidebar from saved subscription âââââââââââââââââââââââââââââââ
 
 async function hydrate(prefs) {
   if (!prefs) return;
@@ -1436,7 +1436,7 @@ async function hydrate(prefs) {
   try { updateProgress(); } catch(e) {}
 }
 
-// ── Auth init ─────────────────────────────────────────────────────────────
+// ââ Auth init âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 await initAuth({
   onLogin: async (user) => {
@@ -1453,7 +1453,7 @@ await initAuth({
 });
 bindModalControls();
 
-// ── Hook findMatches to show subscribe bar after results load ─────────────
+// ââ Hook findMatches to show subscribe bar after results load âââââââââââââ
 const _orig = window.findMatches;
 window.findMatches = function() {
   const result = _orig?.apply(this, arguments);
