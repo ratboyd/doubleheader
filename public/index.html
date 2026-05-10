@@ -1034,7 +1034,7 @@ function runMatches(){
     var uniqueActs = Object.keys(actDateMap).length;
     // Use unique acts if multiple acts on different dates, else use 1
     var baseScore = Math.min(uniqueActs, scorableDates);
-    var totalActs = Math.min(baseScore + (w.hasBroad && baseScore < 4 ? 1 : 0), 4);
+    var totalActs = Math.min(baseScore + (w.hasBroad && baseScore >= 1 && baseScore < 4 ? 0.5 : 0), 4);
     w.score = Math.min(totalActs, 4);
   });
   // Genre affinity: sports teams signal music genre preferences
