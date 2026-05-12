@@ -1461,6 +1461,68 @@ window.findMatches = function() {
   setTimeout(() => updateSubscribeBar(window._hasSub), 800);
   return result;
 };
+
+
+// ── AI Trip Narrative ──────────────────────────────────────────────
+async function fetchNarrative(card) {
+  var events = card.events || [];
+  var artists = [...new Set(events.filter(function(e){return e.type==='artist';}).map(function(e){return e.name;}))];
+  var teams   = [...new Set(events.filter(function(e){return e.type==='team';}).map(function(e){return e.name;}))];
+  var venue   = events[0] && events[0].venue ? events[0].venue : '';
+  var dateStr = card.firstDate === card.lastDate ? card.firstDate : card.firstDate + ' to ' + card.lastDate;
+
+  var prompt = 'You are writing a short trip teaser for a travel+events app. In exactly 2 sentences (max 40 words total), describe why this weekend in ' + card.city + ' is worth the trip. Events: ' + (artists.length ? artists.join(', ') : '') + (teams.length ? (artists.length ? '; plus ' : '') + teams.join(', ') : '') + '. Dates: ' + dateStr + '. Be punchy, specific, and exciting. No fluff.';
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 100,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    var json = await resp.json();
+    return json.content && json.content[0] && json.content[0].text ? json.content[0].text.trim() : null;
+  } catch(e) { return null; }
+}
+
+function addNarrativeToCard(cardEl, cardData) {
+  if (cardEl.querySelector('.card-narrative')) return; // already added
+  var pill = document.createElement('div');
+  pill.className = 'card-narrative';
+  pill.style.cssText = 'font-size:11px;color:var(--ink3);line-height:1.5;padding:8px 14px 10px;border-top:1px solid rgba(13,13,12,.07);font-style:italic;opacity:0.85;';
+  pill.textContent = '...';
+  cardEl.appendChild(pill);
+  fetchNarrative(cardData).then(function(text) {
+    pill.textContent = text || '';
+    if (!text) pill.remove();
+  });
+}
+
+// Attach narratives to rendered cards after results load
+var _origRender = window.renderResults;
+function attachNarratives(cards) {
+  if (!cards || !cards.length) return;
+  var mcards = document.querySelectorAll('.mcard');
+  cards.slice(0, 8).forEach(function(card, i) {
+    if (mcards[i]) addNarrativeToCard(mcards[i], card);
+  });
+}
+// Hook into the results - watch for DOM changes on the results container
+var _narrativeObserver = new MutationObserver(function() {
+  var results = window.cached;
+  if (results && results.length) {
+    _narrativeObserver.disconnect();
+    setTimeout(function(){ attachNarratives(results); }, 300);
+  }
+});
+document.addEventListener('DOMContentLoaded', function() {
+  var container = document.getElementById('results') || document.querySelector('.app');
+  if (container) _narrativeObserver.observe(container, { childList: true, subtree: true });
+});
+// ────────────────────────────────────────────────────────────────────
 </script>
 
 </body>
