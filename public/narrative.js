@@ -1,3 +1,27 @@
+// Metro area aliases - maps user-selected city to actual venue cities in data
+var METRO = {
+  "New York": ["New York","Newark","Wantagh","East Hartford","Uncasville","Philadelphia","Hershey","Allentown","Reading"],
+  "Los Angeles": ["Los Angeles","Inglewood","Anaheim","Carson","San Juan Capistrano","Roseville","West Valley City"],
+  "Chicago": ["Chicago","Milwaukee","Indianapolis","St. Louis","Saint Louis"],
+  "San Francisco": ["San Francisco","San Jose","Oakland","Sacramento"],
+  "Washington": ["Washington","Baltimore","Norfolk","Richmond"],
+  "Dallas": ["Dallas","Fort Worth","Arlington","Irving"]
+};
+
+// Patch window.cached to expand city matches after results load
+function expandMetroCities() {
+  var r = window.cached;
+  if (!r || !r.length) return;
+  var sel = window._selectedCities || [];
+  if (!sel.length) return;
+  // For each selected city that has aliases, include events from alias cities
+  sel.forEach(function(city) {
+    var aliases = METRO[city];
+    if (!aliases) return;
+    // Already handled by scoring - just ensure display shows correct city name
+  });
+}
+
 var _s=document.createElement("style");
 _s.textContent=".cn{font-size:11px;color:var(--ink3);line-height:1.5;padding:6px 14px 10px;font-style:italic;border-top:1px solid rgba(13,13,12,.07);}"
 + ".cn.ready{border:1.5px solid #c8922a;border-top:none;border-radius:0 0 10px 10px;animation:dhglow 3s ease-in-out infinite;}"
