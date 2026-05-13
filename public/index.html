@@ -249,7 +249,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="tags" id="cityTags"></div>
       <div class="divider"></div>
 
-      <!-- ARTISTS — primary -->
+      <!-- ARTISTS â primary -->
       <div class="sb-head"><span class="sb-label primary">Artists I want to see</span><span class="sb-count" id="artistCount">0/10</span></div>
       <div class="ac-wrap">
         <div class="add-row">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="qa-wrap" id="artistQA"></div>
       <div class="tags" id="artistTags"></div>
 
-      <!-- GENRES — broad, lower weight -->
+      <!-- GENRES â broad, lower weight -->
       <div class="divider soft"></div>
       <div class="sb-head"><span class="sb-label broad">Also open to genres <span style="font-style:italic;font-weight:400">(lower weight)</span></span></div>
       <div class="broad-note">Results appear, but score less than artists you're specifically following.</div>
@@ -271,7 +271,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="tags" id="genreTags"></div>
       <div class="divider"></div>
 
-      <!-- TEAMS — primary -->
+      <!-- TEAMS â primary -->
       <div class="sb-head"><span class="sb-label primary">Teams I follow</span><span class="sb-count" id="teamCount">0/10</span></div>
       <div class="ac-wrap">
         <div class="add-row">
@@ -284,17 +284,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="qa-wrap" id="teamQA"></div>
       <div class="tags" id="teamTags"></div>
 
-      <!-- LEAGUES — broad, lower weight -->
+      <!-- LEAGUES â broad, lower weight -->
       <div class="divider soft"></div>
       <div class="sb-head"><span class="sb-label broad">Also catch games if I'm there <span style="font-style:italic;font-weight:400">(lower weight)</span></span></div>
-      <div class="broad-note">Good for baseball in the sun or playoff hockey — surfaces games without dominating results.</div>
+      <div class="broad-note">Good for baseball in the sun or playoff hockey â surfaces games without dominating results.</div>
       <div class="qa-wrap" id="leagueQA"></div>
       <div class="tags" id="leagueTags"></div>
       <div class="divider"></div>
 
-      <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches →</button>
+      <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches â</button>
 
-      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
+      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">â</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
     </div>
   </aside>
 
@@ -304,7 +304,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9a9690" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </div>
       <h2>Your matches will appear here</h2>
-      <p>Add your home city, cities you'd travel to, artists you follow, and sports teams — then hit <strong>Find matches</strong>. We pull live tour dates and game schedules. Add broad genres or leagues to surface bonus options at lower weight.</p>
+      <p>Add your home city, cities you'd travel to, artists you follow, and sports teams â then hit <strong>Find matches</strong>. We pull live tour dates and game schedules. Add broad genres or leagues to surface bonus options at lower weight.</p>
     </div>
 
     <div id="loadingState" class="loading-state" style="display:none">
@@ -399,7 +399,7 @@ function getFlight(city) {
   return null;
 }
 
-// City name → IATA airport code (major North American cities)
+// City name â IATA airport code (major North American cities)
 var CITY_IATA = {
   'calgary':'YYC','edmonton':'YEG','vancouver':'YVR','victoria':'YYJ','kelowna':'YLW',
   'kamloops':'YKA','saskatoon':'YXE','regina':'YQR','winnipeg':'YWG','thunder bay':'YQT',
@@ -584,7 +584,7 @@ var ALL_ARTISTS = [
 var ALL_GENRES = ['Country','Rock','Pop','EDM','Hip-Hop','R&B','Jazz','Classical','Metal','Folk','Indie','Alternative'];
 var ALL_LEAGUES = ['NHL','NBA','NFL','MLB','MLS'];
 
-// Quick-add suggestions — artists currently touring NA in 2026, popular teams
+// Quick-add suggestions â artists currently touring NA in 2026, popular teams
 var CITY_S   = ['Las Vegas','New York','Chicago','Nashville','Los Angeles','Miami','Dallas','Atlanta','Seattle','Denver'];
 var ARTIST_S = ['Taylor Swift','The Weeknd','Kendrick Lamar','Billie Eilish','Post Malone','Sabrina Carpenter','Luke Combs','Morgan Wallen','Zach Bryan','Chappell Roan','Noah Kahan','Jelly Roll','Olivia Rodrigo','Hozier','Lainey Wilson','Hardy','Cody Johnson','Green Day','Metallica','Ed Sheeran'];
 var TEAM_S   = ['Vegas Golden Knights','Edmonton Oilers','Toronto Maple Leafs','Dallas Stars','Colorado Avalanche','Minnesota Wild','Boston Bruins','Florida Panthers','Carolina Hurricanes','Tampa Bay Lightning'];
@@ -1108,7 +1108,7 @@ cached=windows;
     notices.push('<div class="notice"><div>ð</div><div><strong>Calgary Flames missed the 2026 playoffs</strong><span>Set an alert for when the 2026â27 schedule drops.</span></div></div>');
   }
   if(!isNetlify()){
-    notices.push('<div class="notice info"><div>â¹ï¸</div><div><strong>Preview mode — using built-in data</strong><span>Deploy to Netlify with your TICKETMASTER_KEY for live dates. Genre & league results only appear in live mode.</span></div></div>');
+    notices.push('<div class="notice info"><div>â¹ï¸</div><div><strong>Preview mode â using built-in data</strong><span>Deploy to Netlify with your TICKETMASTER_KEY for live dates. Genre & league results only appear in live mode.</span></div></div>');
   }
   var citiesWithMatches={};
   windows.forEach(function(w){citiesWithMatches[w.city.toLowerCase()]=true;});
@@ -1119,7 +1119,7 @@ cached=windows;
   document.getElementById('noticeArea').innerHTML=notices.join('');
 
   document.getElementById('matchTitle').textContent=windows.length===0?'No matches yet':windows.length+' match'+(windows.length!==1?'es':'')+' found';
-  document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength — doubleheaders first.':'Add cities and artists/teams, then click Find matches.';
+  document.getElementById('matchSub').textContent=windows.length>0?'Scored by overlap strength â doubleheaders first.':'Add cities and artists/teams, then click Find matches.';
   document.getElementById('resultsState').style.display='block';
 
   renderGrid(windows);
@@ -1150,7 +1150,7 @@ function buildCard(w){
       var skyUrl=getSkyscannerUrl(w.city, firstEventDate, lastEventDate);
       var originIATA=getCityIATA(S.home.split(',')[0].trim());
       var destIATA=getCityIATA(w.city);
-      var flightLabel=fh!==null?'â '+originIATA+'→'+destIATA+' ~'+fh+'h':'â Search flights';
+      var flightLabel=fh!==null?'â '+originIATA+'â'+destIATA+' ~'+fh+'h':'â Search flights';
       flightHtml='<a class="flight-link" href="'+skyUrl+'" target="_blank">'+flightLabel+'</a>';
     }
   }
@@ -1193,8 +1193,8 @@ function buildCard(w){
     }
     var typeClass=e.broadMatch?'type-broad':('type-'+e.type);
     var broadTag=e.broadMatch?'<span class="broad-tag">'+e.broadLabel+'</span>':'';
-    var ticketLink=e.url?'<a class="me-link" href="'+e.url+'" target="_blank">Tickets →</a>':'';
-    var subNote=e.note&&!e.broadMatch?' <span style="font-weight:300;opacity:.6">· '+e.note+'</span>':'';
+    var ticketLink=e.url?'<a class="me-link" href="'+e.url+'" target="_blank">Tickets â</a>':'';
+    var subNote=e.note&&!e.broadMatch?' <span style="font-weight:300;opacity:.6">Â· '+e.note+'</span>':'';
     return '<div class="mevent '+typeClass+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+broadTag+subNote+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dLabel+'</div>'+ticketLink+'</div>';
   }).join('');
 
@@ -1203,7 +1203,7 @@ function buildCard(w){
 
 function renderGrid(wins){
   var el=document.getElementById('matchGrid');
-  el.innerHTML=wins.length?wins.map(buildCard).join(''):'<div style="color:var(--ink3);font-size:13px;padding:16px 0;grid-column:1/-1">No matches — try adding more cities, artists, or teams.</div>';
+  el.innerHTML=wins.length?wins.map(buildCard).join(''):'<div style="color:var(--ink3);font-size:13px;padding:16px 0;grid-column:1/-1">No matches â try adding more cities, artists, or teams.</div>';
 }
 function renderByCity(wins){
   var cits=[...new Set(wins.map(function(w){return w.city;}))];
@@ -1334,11 +1334,133 @@ window.addItem = addItem;
 
 // Boot
 updateProgress();
+</script>
 
-// AI Narrative
-function fetchNarrative(card){var events=card.events||[];var artists=[];var teams=[];events.forEach(function(e){if(e.type==="artist"&&artists.indexOf(e.name)<0)artists.push(e.name);if(e.type==="team"&&teams.indexOf(e.name)<0)teams.push(e.name);});var dateStr=card.firstDate||card.start;var prompt="2 punchy sentences max 35 words: why visit "+card.city+" for this weekend? Events: "+artists.concat(teams).join(", ")+" around "+dateStr+". Be specific and exciting.";return fetch("/.netlify/functions/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:prompt})}).then(function(r){return r.json();}).then(function(d){return d.text||null;}).catch(function(){return null;});}
-function attachNarratives(results){var mcards=document.querySelectorAll(".mcard");results.slice(0,6).forEach(function(card,i){var el=mcards[i];if(!el||el.querySelector(".cn"))return;var div=document.createElement("div");div.className="cn";div.style.cssText="font-size:11px;color:var(--ink3);line-height:1.5;padding:6px 14px 10px;border-top:1px solid rgba(13,13,12,.07);font-style:italic;";div.textContent="...";el.appendChild(div);fetchNarrative(card).then(function(t){if(t)div.textContent=t;else div.remove();});});}
-function tryAttachNarratives(){var r=window.cached;if(r&&r.length){attachNarratives(r);return true;}return false;}var _nObs=new MutationObserver(function(){if(tryAttachNarratives())_nObs.disconnect();});document.addEventListener("DOMContentLoaded",function(){var c=document.querySelector(".app")||document.body;_nObs.observe(c,{childList:true,subtree:true});});window.addEventListener("load",function(){setTimeout(tryAttachNarratives,1000);});
+<div id="auth-modal" class="hidden">
+  <div class="auth-box">
+    <button class="auth-close" id="auth-modal-close">&#x2715;</button>
+    <h2>Save your preferences</h2>
+    <p>Sign in to save your cities, artists &amp; teams &mdash; and get email alerts when new dates drop.</p>
+    <button id="auth-google-btn">
+      <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.167 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-or">or</div>
+    <div id="auth-email-step">
+      <input id="auth-email-input" type="email" placeholder="your@email.com" autocomplete="email">
+      <button id="auth-send-link">Send magic link</button>
+      <div id="auth-error" class="hidden"></div>
+    </div>
+    <div id="auth-confirm-msg" class="hidden">Check your inbox &mdash; a sign-in link is on its way.</div>
+  </div>
+</div>
+
+<script type="module">
+import { initAuth, bindModalControls, loadPreferences, savePreferences, getUser } from '/auth.js';
+
+// ââ Subscription helpers ââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+function updateSubscribeBar(hasSub) {
+  const bar = document.getElementById('subscribe-bar');
+  if (!bar) return;
+  const user = getUser();
+  if (!user) {
+    // Not logged in â show prompt to log in to subscribe
+    bar.innerHTML = `<span class="sub-status">Want alerts for new matches?</span>
+      <button class="sub-btn" onclick="document.getElementById('auth-open-modal')?.click()">Log in to subscribe</button>`;
+    bar.classList.add('visible');
+    return;
+  }
+  if (hasSub) {
+    bar.innerHTML = `
+      <span class="sub-active-label">&#10003; Subscribed to these alerts</span>
+      <button class="sub-btn update" id="update-sub-btn">Update subscription</button>`;
+    document.getElementById('update-sub-btn')?.addEventListener('click', saveSubscription);
+  } else {
+    bar.innerHTML = `
+      <span class="sub-status">Get email alerts when new dates drop for this search</span>
+      <button class="sub-btn" id="save-sub-btn">Subscribe to these alerts</button>`;
+    document.getElementById('save-sub-btn')?.addEventListener('click', saveSubscription);
+  }
+  bar.classList.add('visible');
+}
+
+async function saveSubscription() {
+  const user = getUser();
+  if (!user) return;
+  const bar = document.getElementById('subscribe-bar');
+  const prefs = {
+    home_city: S.home,
+    travel_cities: [...(S.cities||[])],
+    artists: [...(S.artists||[])],
+    teams: [...(S.teams||[])],
+    genres: [...(S.genres||[])],
+    leagues: [...(S.leagues||[])],
+  };
+  if (bar) bar.innerHTML = '<span class="sub-status">Saving...</span>';
+  await window._savePrefs(prefs);
+  window._hasSub = true;
+  if (bar) {
+    bar.innerHTML = `<span class="sub-active-label">&#10003; Subscribed! We'll email you when new matches drop.</span>
+      <button class="sub-btn update" id="update-sub-btn" style="margin-left:4px">Update</button>`;
+    document.getElementById('update-sub-btn')?.addEventListener('click', saveSubscription);
+  }
+}
+
+window._saveSubscription = saveSubscription;
+window._updateSubscribeBar = updateSubscribeBar;
+window._getUser = getUser;
+window._savePrefs = savePreferences;
+window._hasSub = false;
+
+// ââ Hydrate sidebar from saved subscription âââââââââââââââââââââââââââââââ
+
+async function hydrate(prefs) {
+  if (!prefs) return;
+  window._hasSub = true;
+  if (prefs.home_city) {
+    S.home = prefs.home_city;
+    const inp = document.getElementById('homeInput');
+    if (inp) { inp.value = prefs.home_city; inp.dispatchEvent(new Event('input')); }
+  }
+  for (const [key, vals] of Object.entries({
+    cities: prefs.travel_cities, artists: prefs.artists,
+    teams: prefs.teams, genres: prefs.genres, leagues: prefs.leagues
+  })) {
+    for (const v of (vals || [])) {
+      if (!S[key].includes(v)) S[key].push(v);
+    }
+  }
+  ['city','artist','team','genre','league'].forEach(t => { try { renderTags(t); } catch(e) {} });
+  ['city','artist','team','genre','league'].forEach(t => { try { updateCount(t); } catch(e) {} });
+  try { updateProgress(); } catch(e) {}
+}
+
+// ââ Auth init âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+await initAuth({
+  onLogin: async (user) => {
+    document.getElementById('auth-pill').innerHTML =
+      '<span class="nav-user"><span class="nav-avatar">' + user.email[0].toUpperCase() + '</span>' +
+      user.email + '</span><button class="nbtn" onclick="signOut()">Sign out</button>';
+    const prefs = await loadPreferences();
+    await hydrate(prefs);
+    if (prefs) window.findMatches && window.findMatches();
+  },
+  onLogout: () => {
+    window._hasSub = false;
+  }
+});
+bindModalControls();
+
+// ââ Hook findMatches to show subscribe bar after results load âââââââââââââ
+const _orig = window.findMatches;
+window.findMatches = function() {
+  const result = _orig?.apply(this, arguments);
+  // Show subscribe bar after results render
+  setTimeout(() => updateSubscribeBar(window._hasSub), 800);
+  return result;
+};
 </script>
 
 </body>
