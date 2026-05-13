@@ -780,7 +780,7 @@ async function fetchGenre(genre, cities){
   try{
     // Fetch genre events for each of the user's cities
     var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]);
-    for(var i=0;i<Math.min(cityList.length,5);i++){
+    for(var i=0;i<Math.min(cityList.length,10);i++){
       var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i]));
       var data=await r.json();
       (data.events||[]).forEach(function(ev){
