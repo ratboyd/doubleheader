@@ -779,8 +779,8 @@ async function fetchGenre(genre, cities){
   var results=[];
   try{
     // Fetch genre events for each of the user's cities
-    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]);
-    for(var i=0;i<Math.min(cityList.length,10);i++){
+    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]);var _metro={"New York":["Newark","Wantagh","East Hartford","Uncasville"],"Los Angeles":["Inglewood","Anaheim","Roseville","West Valley City","San Juan Capistrano"],"Chicago":["Milwaukee"],"San Francisco":["Oakland","San Jose"],"Washington":["Baltimore","Norfolk"]};var _base=cityList.slice();_base.forEach(function(c){if(_metro[c])_metro[c].forEach(function(a){if(cityList.indexOf(a)<0)cityList.push(a);});});
+    for(var i=0;i<Math.min(cityList.length,20);i++){
       var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i]));
       var data=await r.json();
       (data.events||[]).forEach(function(ev){
