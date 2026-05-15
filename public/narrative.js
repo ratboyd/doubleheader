@@ -46,10 +46,12 @@ function fetchNarrative(card){
 }
 
 function attachNarratives(results){
+  // Remove any narratives from a previous search so re-searches get fresh copy
+  document.querySelectorAll(".cn").forEach(function(el){el.remove();});
   var mc=document.querySelectorAll(".mcard");
   results.slice(0,6).forEach(function(card,i){
     var el=mc[i];
-    if(!el||el.querySelector(".cn"))return;
+    if(!el)return;
     var div=document.createElement("div");
     div.className="cn";
     div.textContent="...";
@@ -60,8 +62,3 @@ function attachNarratives(results){
     });
   });
 }
-
-setInterval(function(){
-  var r=window.cached;
-  if(r&&r.length&&!document.querySelector(".cn"))attachNarratives(r);
-},1500);

@@ -71,9 +71,10 @@ export default async (req, context) => {
     if (gid) params.set("genreId", gid);
     else { params.set("keyword", genre); params.set("classificationName", "Music"); }
   } else if (league) {
+    params.set("classificationName", "Sports");
     const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
     if (sg) params.set("subGenreId", sg);
-    else { params.set("classificationName","Sports"); params.set("keyword", league.toUpperCase()); }
+    else params.set("keyword", league.toUpperCase());
   }
 
   if (city && (genre || league)) params.set("city", city);
