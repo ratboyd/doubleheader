@@ -371,8 +371,8 @@ var isFetching = false;
 // -- METRO ALIASES --
 // Ticketmaster venue cities for major metros; expand user city selections to catch suburb venues
 var METRO_ALIASES = {
-  "New York":      ["Newark","Wantagh","East Hartford","Uncasville","Elmont","Queens","Flushing"],
-  "Los Angeles":   ["Inglewood","Anaheim","Carson","Roseville","Hollywood","Burbank","Chula Vista"],
+  "New York":      ["Newark","Wantagh","East Hartford","Uncasville","Elmont","Queens","Flushing","Bronx","East Rutherford"],
+  "Los Angeles":   ["Inglewood","Anaheim","Carson","Roseville","Hollywood","Burbank","Chula Vista","Long Beach"],
   "Chicago":       ["Milwaukee","Rosemont","Tinley Park","Hoffman Estates"],
   "San Francisco": ["Oakland","San Jose","Sacramento","Mountain View","Concord"],
   "Washington":    ["Baltimore","Norfolk","Columbia","Bristow","Clarksburg"],
@@ -1154,9 +1154,14 @@ cached=windows;
   if(!isNetlify()){
     notices.push('<div class="notice info"><div>ℹ️</div><div><strong>Preview mode — using built-in data</strong><span>Deploy to Netlify with your TICKETMASTER_KEY for live dates. Genre & league results only appear in live mode.</span></div></div>');
   }
-  var citiesWithMatches={};
-  windows.forEach(function(w){citiesWithMatches[w.city.toLowerCase()]=true;});
-  var noMatch=S.cities.filter(function(c){return !citiesWithMatches[c.toLowerCase()];});
+  // A user city counts as matched if any result window is in that metro (direct or alias)
+  var noMatch=S.cities.filter(function(c){
+    var cLow=c.toLowerCase();
+    return !windows.some(function(w){
+      var wc=w.city.toLowerCase();
+      return wc===cLow||wc.includes(cLow)||cLow.includes(wc)||(aliasMap[cLow]||[]).indexOf(wc)>=0;
+    });
+  });
   if(noMatch.length){
     notices.push('<div class="notice"><div>🔍</div><div><strong>No matches in: '+noMatch.join(', ')+'</strong><span>Your followed artists and teams don\'t have events there in the current window.</span></div></div>');
   }
