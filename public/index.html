@@ -718,7 +718,7 @@ initQA('leagueQA', ALL_LEAGUES, 'league', true);
 function refreshQA(type){
   var arr=getArr(type);
   var lower=arr.map(function(v){return v.toLowerCase();});
-  var qaId=type==='city'?'cityQA':type==='artist'?'artistQA':'teamQA';
+  var qaId=type==='city'?'cityQA':type==='artist'?'artistQA':type==='genre'?'genreQA':type==='league'?'leagueQA':'teamQA';
   var el=document.getElementById(qaId); if(!el)return;
   Array.from(el.querySelectorAll('.qa')).forEach(function(btn){
     var inUse=lower.indexOf(btn.textContent.trim().toLowerCase())>=0;
@@ -758,8 +758,8 @@ function renderTags(type){
   el.innerHTML=getArr(type).map(function(v){
     return '<div class="tag '+type+'"><span>'+v+'</span><button class="tag-x" onclick="removeItem(\''+type+'\',\''+v+'\')">×</button></div>';
   }).join('');
-}
   if(typeof refreshQA==='function')refreshQA(type);
+}
 function updateCount(type){
   var el=document.getElementById(type+'Count');
   if(el)el.textContent=getArr(type).length+'/10';
@@ -806,18 +806,13 @@ async function fetchGenre(genre, cities){
   if(!isNetlify()) return []; // genres only in live mode
   var results=[];
   try{
-    // Fetch genre events for each of the user's cities
-    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]);
-    var expandedCities=[];
-    cityList.forEach(function(c){expandedCities.push(c);(METRO_ALIASES[c]||[]).forEach(function(a){expandedCities.push(a);});});
-    cityList=expandedCities;
-    for(var i=0;i<Math.min(cityList.length,20);i++){
-      var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i]));
-      var data=await r.json();
-      (data.events||[]).forEach(function(ev){
-        results.push({city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
-      });
-    }
+    // Single call without city; runMatches() city-filters via METRO_ALIASES.
+    // Per-city calls caused TM to miss metro-area venues (e.g. Inglewood for LA).
+    var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase()));
+    var data=await r.json();
+    (data.events||[]).forEach(function(ev){
+      results.push({city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
+    });
   }catch(e){}
   return results;
 }
@@ -826,17 +821,12 @@ async function fetchLeague(league, cities){
   if(!isNetlify()) return [];
   var results=[];
   try{
-    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]);
-    var expandedCities=[];
-    cityList.forEach(function(c){expandedCities.push(c);(METRO_ALIASES[c]||[]).forEach(function(a){expandedCities.push(a);});});
-    cityList=expandedCities;
-    for(var i=0;i<Math.min(cityList.length,20);i++){
-      var r=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase())+'&city='+encodeURIComponent(cityList[i]));
-      var data=await r.json();
-      (data.events||[]).forEach(function(ev){
-        results.push({city:ev.city,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
-      });
-    }
+    // Single call without city; runMatches() city-filters via METRO_ALIASES.
+    var r=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase()));
+    var data=await r.json();
+    (data.events||[]).forEach(function(ev){
+      results.push({city:ev.city,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
+    });
   }catch(e){}
   return results;
 }
