@@ -38,7 +38,7 @@ export default async (req, context) => {
     "nba":"KZazBEonSMnZfZ7vFlt",
     "nfl":"KZazBEonSMnZfZ7vFnJ",
     "mlb":"KZazBEonSMnZfZ7vF1n",
-    "mls":"KZazBEonSMnZfZ7vFIl",
+    // MLS: subGenreId unreliable; classificationName=MLS works better
   };
 
   // Build date window
@@ -71,10 +71,15 @@ export default async (req, context) => {
     if (gid) params.set("genreId", gid);
     else { params.set("keyword", genre); params.set("classificationName", "Music"); }
   } else if (league) {
-    params.set("classificationName", "Sports");
     const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
-    if (sg) params.set("subGenreId", sg);
-    else params.set("keyword", league.toUpperCase());
+    if (sg) {
+      params.set("classificationName", "Sports");
+      params.set("subGenreId", sg);
+    } else {
+      // classificationName matches across all TM classification levels (segment/genre/subgenre)
+      // e.g. "MLS" matches the MLS subgenre without needing the exact subGenreId
+      params.set("classificationName", league.toUpperCase());
+    }
   }
 
   if (city && (genre || league)) params.set("city", city);
@@ -168,11 +173,11 @@ export default async (req, context) => {
         const MINOR_LEAGUES = ['ahl', 'echl', 'chl', 'ohl', 'whl', 'qmjhl', 'nll',
           'nba g league', 'usl', 'usl championship', 'usl league one', 'nwsl'];
         if (MINOR_LEAGUES.some(ml => subgenreLower.includes(ml))) return false;
-        // Also drop if ALL words of the team name don't appear in name or subgenre
+        // Require ALL significant words of the team name in the event title
+        // e.g. "dallas" AND "stars" must both appear — prevents generic "Stars Night"
+        // events or alumni shows from matching "Dallas Stars"
         const teamWords = teamLower.split(/\s+/).filter(w => w.length > 3);
-        // At least one key word must match (e.g. "Stars" in "Dallas Stars")
-        const lastWord = teamWords[teamWords.length - 1];
-        if (lastWord && !nameLower.includes(lastWord) && !subgenreLower.includes(lastWord)) return false;
+        if (teamWords.length > 0 && !teamWords.every(w => nameLower.includes(w))) return false;
       }
       return true;
     });
