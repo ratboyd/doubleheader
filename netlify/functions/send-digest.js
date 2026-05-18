@@ -29,16 +29,13 @@ function buildDigestHtml(windows, homeCity) {
         <a href="${ev.url}" style="display:inline-block;margin-top:5px;padding:4px 12px;background:#d4a843;color:#000;font-size:11px;font-weight:700;border-radius:3px;text-decoration:none;">Get tickets</a>
       </div>`).join('');
 
+    const flightHoursTag = w.flightHours ? `<span style="font-size:12px;color:#888;">${w.flightHours}h flight</span>` : '';
     const flightRow = w.flightUrl ? `
       <div style="margin-top:10px;padding:8px 12px;background:#111;border-radius:6px;display:flex;align-items:center;gap:10px;">
         <span style="font-size:12px;color:#aaa;">✈ ${homeCity || 'YYC'} → ${w.city}</span>
-        <span style="font-size:12px;color:#555;">·</span>
-        <span style="font-size:12px;color:#888;">${w.flightHours}h flight</span>
+        ${w.flightHours ? `<span style="font-size:12px;color:#555;">·</span>${flightHoursTag}` : ''}
         <a href="${w.flightUrl}" style="margin-left:auto;font-size:11px;color:#d4a843;font-weight:600;text-decoration:none;">Search flights →</a>
-      </div>` : `
-      <div style="margin-top:10px;padding:8px 12px;background:#111;border-radius:6px;">
-        <span style="font-size:12px;color:#555;">✈ ${homeCity || 'YYC'} → ${w.city} · ${w.flightHours}h</span>
-      </div>`;
+      </div>` : '';
 
     return `
     <div style="margin-bottom:20px;padding:16px;background:#111;border-radius:10px;border:1px solid #222;">
