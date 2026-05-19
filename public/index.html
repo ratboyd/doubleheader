@@ -791,6 +791,26 @@ async function fetchConcerts(artist,startDate,endDate){
   }catch(e){ return getMockEvents('artist',artist); }
 }
 
+async function fetchSeatGeek(keyword,type,startDate,endDate){
+  if(!isNetlify()) return [];
+  try{
+    var param=type==='team'?'team':'artist';
+    var u='/api/seatgeek?'+param+'='+encodeURIComponent(keyword)+
+        (startDate?'&startDate='+startDate:'')+(endDate?'&endDate='+endDate:'');
+    var r=await fetch(u);
+    var data=await r.json();
+    return (data.events||[]).map(function(ev){
+      return {
+        city:ev.city,date:ev.date,
+        name:ev.name,          // full SeatGeek event title
+        artist:ev.artist||keyword, // performer name for dedup against TM events
+        type:type,venue:ev.venue,url:ev.url,
+        broadMatch:false,weight:1.0,source:'seatgeek'
+      };
+    });
+  }catch(e){ return []; }
+}
+
 async function fetchTeamGames(team){
   if(!isNetlify()) return getMockEvents('team', team);
   try{
@@ -917,14 +937,21 @@ async function findMatches(){
   setNavStatus('loading','Fetching...');
 
   LIVE_EVENTS=[];
-  var total=S.artists.length+S.teams.length+S.genres.length+S.leagues.length;
+  // TM + SeatGeek each for artists/teams; single source for genres/leagues
+  var total=S.artists.length*2+S.teams.length*2+S.genres.length+S.leagues.length;
   var done=0;
 
   function tick(){ done++; document.getElementById('loadingDetail').textContent='Fetched '+done+' of '+total+' sources...'; }
 
   var promises=[];
-  S.artists.forEach(function(a){ promises.push(fetchConcerts(a,S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
-  S.teams.forEach(function(t)  { promises.push(fetchTeamGames(t).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
+  S.artists.forEach(function(a){
+    promises.push(fetchConcerts(a,S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
+    promises.push(fetchSeatGeek(a,'artist',S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
+  });
+  S.teams.forEach(function(t){
+    promises.push(fetchTeamGames(t).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
+    promises.push(fetchSeatGeek(t,'team').then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
+  });
   S.genres.forEach(function(g) { promises.push(fetchGenre(g,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
   S.leagues.forEach(function(l){ promises.push(fetchLeague(l,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
 
