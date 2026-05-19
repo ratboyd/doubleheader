@@ -149,8 +149,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   .nav{padding:0 14px;height:48px}
   .nav-right{gap:6px}
   #navStatus{display:none}
-  .nbtn:not(#findBtn):not(.auth-login-btn):not(.auth-signout){display:none}
+  .nbtn:not(#findBtn):not(.auth-login-btn):not(.auth-signout):not(#clearBtn){display:none}
   #auth-pill{margin-left:4px}
+  .auth-email{display:none}
 }
 
 /* Auth UI */
@@ -206,7 +207,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
   <div class="logo">double<em>header</em></div>
   <div class="nav-right">
     <span class="nav-status" id="navStatus"></span>
-    <button class="nbtn" onclick="clearAll()">Clear</button>
+    <button class="nbtn" id="clearBtn" onclick="clearAll()">Clear</button>
     <button class="nbtn gold" id="findBtn" onclick="findMatches()">Find matches</button>
     <div id="auth-pill"></div>
   </div>
@@ -1143,7 +1144,7 @@ cached=windows;
 
   // Stats
   var totalH=windows.reduce(function(s,w){return s+w.primaryHits;},0);
-  var trips=windows.filter(function(w){return w.primaryHits>=2;}).length;
+  var trips=windows.filter(function(w){return w.score>=2;}).length;
   var ucits=[...new Set(windows.map(function(w){return w.city;}))].length;
   document.getElementById('statsRow').innerHTML=
     '<div class="stat"><div class="stat-num">'+windows.length+'</div><div class="stat-label">matching trips</div></div>'+
@@ -1268,7 +1269,13 @@ function renderByCity(wins){
     var cnt=wins.filter(function(w){return w.city===c;}).reduce(function(s,w){return s+w.primaryHits;},0);
     return '<div class="fc" onclick="filterByCity(\''+c+'\',this)"><div class="fc-name">'+c+'</div><div class="fc-sub"><strong>'+cnt+'</strong> match'+(cnt!==1?'es':'')+'</div></div>';
   }).join(''):'<div style="color:var(--ink3);font-size:13px">No matches yet.</div>';
-  document.getElementById('byCityResults').innerHTML='';
+  // Auto-select first city so the tab shows results immediately on open
+  if(cits.length){
+    var firstChip=document.querySelector('#cityFCGrid .fc');
+    if(firstChip)filterByCity(cits[0],firstChip);
+  }else{
+    document.getElementById('byCityResults').innerHTML='';
+  }
 }
 function filterByCity(city,el){
   document.querySelectorAll('#cityFCGrid .fc').forEach(function(c){c.classList.remove('sel');});
@@ -1497,9 +1504,6 @@ async function hydrate(prefs) {
 
 await initAuth({
   onLogin: async (user) => {
-    document.getElementById('auth-pill').innerHTML =
-      '<span class="nav-user"><span class="nav-avatar">' + user.email[0].toUpperCase() + '</span>' +
-      user.email + '</span><button class="nbtn" onclick="signOut()">Sign out</button>';
     const prefs = await loadPreferences();
     await hydrate(prefs);
     if (prefs) window.findMatches && window.findMatches();
