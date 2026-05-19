@@ -1,56 +1,62 @@
-# Doubleheader.app — Claude Code Briefing
-
-## What is this?
-doubleheader.app is a travel + events matching web app. Users enter a home city, cities they'd travel to, artists they follow, and sports teams — then hit "Find Matches" to get weekend trip recommendations where multiple events overlap (e.g. Bryan Adams + an MLB game in the same city on the same weekend).
-
-Cards are scored and labelled: Single (1 event), Double (2), Triple (3), Grand Slam (4+).
+# Doubleheader.app — Claude Code Briefing (Updated)
 
 ## Stack
-- Frontend: Single HTML file — public/index.html (~1400 lines, minified JS inline)
-- Hosting: Netlify (site: stellular-centaur-f0a42b, auto-deploys from GitHub main)
+- Frontend: public/index.html (~1400 lines, minified JS inline)
+- Hosting: Netlify (stellular-centaur-f0a42b, auto-deploys from GitHub main)
 - Repo: https://github.com/ratboyd/doubleheader
 - Auth + DB: Supabase (project: govcexcjxbkshsnsrnqf)
 - Separate files: public/narrative.js, public/manifest.json, public/sw.js, netlify/functions/narrative.js
 
-## Known bugs to fix (priority order)
+## Already Fixed (do not revisit)
+- Double/Triple/Grand Slam card labels correct
+- Gobbledygook characters on remove buttons and notice banner
+- NY/LA city matching via metro aliases
+- AI narrative blurbs via narrative.js + Netlify function
+- PWA manifest + service worker
 
-### 1. Gobbledygook characters
-Several characters render incorrectly:
-- The x (times/close) symbol on pill remove buttons renders as corrupt characters
-- The warning emoji in the "No matches in: X" banner is broken
-- Various dashes and arrows scattered in the page are corrupted
+## Current Bugs to Fix
 
-Root cause: Multiple API patch commits corrupted UTF-8 multi-byte sequences inside JS string literals.
-Fix: Read the file, find all non-ASCII characters in JS string contexts, replace with HTML entities or Unicode escapes.
+### 1. Mobile nav bar - Clear and Login buttons not visible on phone
+On mobile the top-right nav buttons (Clear, Login/account) are hidden or cut off.
+Fix: use relative/percentage sizing instead of fixed pixel widths in the nav CSS.
+The nav is .nav in the CSS - check for fixed px widths and convert to relative units.
 
-### 2. New York / Los Angeles return no results
-When user adds "New York" or "Los Angeles" as travel cities, zero results come back.
+### 2. By City tab shows no results even when matches exist
+The By City tab appears empty even when Best Matches has results.
+This is a bug in the tab filtering/rendering logic - needs investigation and fix.
 
-Root cause: Ticketmaster data uses venue cities like "Newark", "Wantagh", "East Hartford" for NY-area shows, and "Inglewood", "Anaheim" for LA-area shows. The city name "New York" never appears in the event data.
+### 3. Doubleheader+ stat shows 0 for everyone
+The stats bar shows: matching trips / primary overlaps / doubleheader+ / cities in play.
+Nobody ever gets a Doubleheader+ score. Either wire it up properly or remove it to avoid confusion.
 
-The cityList construction is around line 850 in index.html. Look for cityList=cities.concat(...) followed by a for loop that calls the concerts API per city.
+## Data Sources
+- Primary: Ticketmaster API
+- Missing: SeatGeek API (see affiliate section below - HIGH PRIORITY)
+- Missing: Bandsintown or Songkick for better artist coverage (future)
 
-Fix: Before the for loop, expand cityList with metro aliases:
-var METRO_ALIASES = {
-  "New York": ["Newark", "Wantagh", "East Hartford", "Uncasville"],
-  "Los Angeles": ["Inglewood", "Anaheim", "Carson", "Roseville"],
-  "Chicago": ["Milwaukee", "Rosemont"],
-  "San Francisco": ["Oakland", "San Jose", "Sacramento"],
-  "Washington": ["Baltimore", "Norfolk"]
-};
-Also ensure the for loop limit is at least 20.
+## Affiliate Revenue - High Priority
 
-### 3. AI narrative not auto-firing reliably
-narrative.js loads and functions exist but the setInterval polling approach is unreliable.
-Better approach: hook into wherever results are written to window.cached.
+### SeatGeek Affiliate Program
+SeatGeek runs affiliates through Impact.com. Example affiliate URL:
+https://seatgeek.com/candlelight-coldplay-and-imagine-dragons-tickets/fort-worth-texas-fort-worth-botanic-garden-2026-07-23-8-45-pm/concert/18249741?irclickid=11lS0K1XUxyZWzf3FvzOjUCCUkuRRd1i3WBX2g0&utm_source=impact&utm_medium=affiliate&utm_campaign=Songkick&utm_term=1234554&utm_content=&pid=Songkick&aid=16137&adid=1234554&irgwc=1&afsrc=1
 
-### 4. MLS data not showing
-Adding MLS as a league returns no results. Check what sports data sources are configured.
+Key insight: This Coldplay/Imagine Dragons candlelight event in Fort Worth TX (Jul 23 2026) is a perfect example of what doubleheader should surface. It is the kind of intimate/independent venue event that Ticketmaster does not carry. A user who follows Coldplay and the Dallas Stars would get a high-scoring Double card from this. SeatGeek covers these events much better than Ticketmaster.
 
-## What NOT to do
-- Do not rewrite index.html from scratch
-- Do not use btoa/TextEncoder to patch files via GitHub API — that caused the encoding corruption
-- Edit files directly on disk
+Action needed:
+1. Add SeatGeek as a second event data source alongside Ticketmaster
+2. Wire affiliate tracking into SeatGeek ticket links once Impact affiliate account is approved
+3. Owner has Impact.com account under boyd.pat@gmail.com - marketplace access pending traffic threshold
 
-## Owner context
-Patrick Boyd, Calgary AB. Non-technical founder. Be direct, fix things properly, test before committing.
+### Ticketmaster Affiliate
+Also runs through Impact - same account. Wire tracking once approved.
+
+## Product Feedback from Technical Advisor
+- Sorting logic not obvious to users - consider tooltip on the Best overlap first dropdown
+- Data source transparency - users curious where data comes from, consider a small About or FAQ
+- PWA install prompt - consider adding Add to Home Screen nudge for mobile users
+- Focus on user retention before monetization - get traffic first
+
+## Owner Context
+Patrick Boyd, Calgary AB. Non-technical founder. Between roles (energy industry).
+Contact: hello@doubleheader.app (Cloudflare email routing to boyd.pat@gmail.com)
+Impact.com account: boyd.pat@gmail.com (Partner, marketplace pending approval)
