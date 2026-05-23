@@ -11,6 +11,20 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 const resend = new Resend(RESEND_KEY);
 
+// Append Impact.com affiliate tracking to Ticketmaster URLs.
+// Publisher ID 7318540 — approved via Impact.com for Ticketmaster affiliate program.
+function tmAffiliateUrl(url) {
+  if (!url) return url;
+  if (!url.includes('ticketmaster.com') && !url.includes('ticketmaster.ca')) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set('impactid', '7318540');
+    return u.toString();
+  } catch(e) {
+    return url + (url.includes('?') ? '&' : '?') + 'impactid=7318540';
+  }
+}
+
 function fmtDate(str) {
   if (!str) return '';
   const d = new Date(str + 'T12:00:00');
@@ -26,7 +40,7 @@ function buildDigestHtml(windows, homeCity) {
       <div style="padding:8px 0;border-bottom:1px solid #1a1a1a;">
         <div style="font-size:14px;font-weight:700;color:#fff;">${ev.name}</div>
         <div style="font-size:12px;color:#777;margin-top:2px;">${ev.venue || ''}${ev.venue ? ', ' : ''}${ev.city}</div>
-        <a href="${ev.url}" style="display:inline-block;margin-top:5px;padding:4px 12px;background:#d4a843;color:#000;font-size:11px;font-weight:700;border-radius:3px;text-decoration:none;">Get tickets</a>
+        <a href="${tmAffiliateUrl(ev.url)}" style="display:inline-block;margin-top:5px;padding:4px 12px;background:#d4a843;color:#000;font-size:11px;font-weight:700;border-radius:3px;text-decoration:none;">Get tickets</a>
       </div>`).join('');
 
     const flightHoursTag = w.flightHours ? `<span style="font-size:12px;color:#888;">${w.flightHours}h flight</span>` : '';

@@ -1217,6 +1217,21 @@ cached=windows;
 function fmt(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
 function fmtY(d){if(typeof d==='string')d=new Date(d+'T12:00:00');return d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});}
 
+// Append Impact.com affiliate tracking to Ticketmaster URLs.
+// Publisher ID 7318540 — approved via Impact.com for Ticketmaster affiliate program.
+// SeatGeek affiliate is handled separately in seatgeek.js via SEATGEEK_AFFILIATE_ID env var.
+function tmAffiliateUrl(url){
+  if(!url) return url;
+  if(!url.includes('ticketmaster.com')&&!url.includes('ticketmaster.ca')) return url;
+  try{
+    var u=new URL(url);
+    u.searchParams.set('impactid','7318540');
+    return u.toString();
+  }catch(e){
+    return url+(url.includes('?')?'&':'?')+'impactid=7318540';
+  }
+}
+
 function buildCard(w){
   var sc=w.score||1;
   var tier=sc>=4?'grand-slam':sc>=3?'triple':sc>=2?'double':'single';
@@ -1278,7 +1293,7 @@ function buildCard(w){
     }
     var typeClass=e.broadMatch?'type-broad':('type-'+e.type);
     var broadTag=e.broadMatch?'<span class="broad-tag">'+e.broadLabel+'</span>':'';
-    var ticketLink=e.url?'<a class="me-link" href="'+e.url+'" target="_blank">Tickets →</a>':'';
+    var ticketLink=e.url?'<a class="me-link" href="'+tmAffiliateUrl(e.url)+'" target="_blank">Tickets →</a>':'';
     var subNote=e.note&&!e.broadMatch?' <span style="font-weight:300;opacity:.6">· '+e.note+'</span>':'';
     return '<div class="mevent '+typeClass+'"><div class="me-dot"></div><div class="me-body"><div class="me-name">'+e.name+broadTag+subNote+'</div><div class="me-venue">'+e.venue+'</div></div><div class="me-date">'+dLabel+'</div>'+ticketLink+'</div>';
   }).join('');
