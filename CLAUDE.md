@@ -56,6 +56,12 @@ Also runs through Impact - same account. Wire tracking once approved.
 - PWA install prompt - consider adding Add to Home Screen nudge for mobile users
 - Focus on user retention before monetization - get traffic first
 
+## Analytics
+- Cloudflare Web Analytics: active, auto-injected via CF proxy (no script tag in HTML)
+- Site token: cfdfdc2ea33b47188b0b07844832e126 (needed for CF API integrations only)
+- Mode: EU visitor data excluded (privacy-friendly, no cookie banner needed)
+- Netlify Analytics: available as $9/mo add-on (not currently enabled)
+
 ## Owner Context
 Patrick Boyd, Calgary AB. Non-technical founder. Between roles (energy industry).
 Contact: hello@doubleheader.app (Cloudflare email routing to boyd.pat@gmail.com)
