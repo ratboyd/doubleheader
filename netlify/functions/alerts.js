@@ -116,7 +116,7 @@ function groupIntoWindows(events, cities, homeCity) {
       w.nameSeen[nk] = true;
       // Flag same-day doubles
       if (w.events.some(ev => ev.date === e.date)) w.hasSameDay = true;
-      w.events.push({ name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url });
+      w.events.push({ id: e.id, name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url });
       w.score += 1; // act-count scoring (same as frontend)
     }
   }

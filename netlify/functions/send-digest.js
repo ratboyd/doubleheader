@@ -25,6 +25,18 @@ function tmAffiliateUrl(url) {
   }
 }
 
+// Stable dedup key for seen_events — priority:
+//   1. e.id  — TM/SeatGeek event ID, completely stable (e.g. "Z7r9jZ1A5Jd")
+//   2. URL path only (strip query params) — handles TM appending ?tm_link= etc.
+//   3. name|date|city composite — last resort for events with no id/url
+function stableEventId(e) {
+  if (e.id) return String(e.id);
+  if (e.url) {
+    try { return new URL(e.url).pathname; } catch(_) { return e.url.split('?')[0]; }
+  }
+  return (e.name + '|' + e.date + '|' + e.city).toLowerCase();
+}
+
 function fmtDate(str) {
   if (!str) return '';
   const d = new Date(str + 'T12:00:00');
@@ -116,7 +128,7 @@ export default async (req) => {
     filteredWindows = windows.map(w => ({
       ...w,
       events: w.events.filter(e => {
-        const eid = e.url || (e.name + '|' + e.date + '|' + e.city);
+        const eid = stableEventId(e);
         return !seenIds.has(eid);
       })
     })).filter(w => w.events.length > 0);
@@ -153,7 +165,7 @@ export default async (req) => {
   if (userId && userId !== 'test') {
     const eventIds = filteredWindows.flatMap(w => w.events.map(e => ({
       user_id: userId,
-      tm_event_id: e.url || (e.name + '|' + e.date + '|' + e.city),
+      tm_event_id: stableEventId(e),
       event_name: e.name,
       event_city: e.city,
       alerted_at: new Date().toISOString()
