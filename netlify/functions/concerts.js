@@ -155,12 +155,21 @@ export default async (req, context) => {
         // Require artist name match Ã¢ÂÂ attraction must start with or equal search term
         // (prevents "The Long Run: Experience the Eagles" matching "Eagles")
         const searchLower = artist.toLowerCase();
-        const attractionMatch = artistLower === searchLower ||
-          artistLower.startsWith(searchLower) ||
-          artistLower.startsWith('the ' + searchLower);
-        const nameExact = nameLower.startsWith(searchLower) || nameLower.includes(': ' + searchLower);
+        // Check ALL attractions, not just the first — catches co-headliner and support
+        // act events where the searched artist isn't billed first (e.g. "Three Days Grace
+        // & Seether", "Nickelback with Seether").
+        const allAttractions = (ev._embedded?.attractions || []).map(a => (a.name || '').toLowerCase());
+        const attractionMatch = allAttractions.some(al =>
+          al === searchLower || al.startsWith(searchLower) || al.startsWith('the ' + searchLower)
+        );
+        // Also accept if event name contains the artist name in common multi-act formats
+        const nameExact = nameLower.startsWith(searchLower) ||
+          nameLower.includes(': ' + searchLower) ||
+          nameLower.includes('& ' + searchLower) ||
+          nameLower.includes('and ' + searchLower) ||
+          nameLower.includes('with ' + searchLower);
         if (!attractionMatch && !nameExact) return false;
-        // Also drop if attraction name contains tribute indicators
+        // Drop if the first attraction contains tribute indicators and no direct match
         const TRIBUTE_ATTRACTION = ['experience', 'tribute', 'salute', 'legacy', 'allstar', 'all star'];
         if (!attractionMatch && TRIBUTE_ATTRACTION.some(w => artistLower.includes(w))) return false;
       }
