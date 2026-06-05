@@ -373,23 +373,32 @@ var isFetching = false;
 // -- METRO ALIASES --
 // Ticketmaster venue cities for major metros; expand user city selections to catch suburb venues
 var METRO_ALIASES = {
-  "New York":      ["Newark","Wantagh","East Hartford","Uncasville","Elmont","Queens","Flushing","Bronx","East Rutherford"],
-  "Los Angeles":   ["Inglewood","Anaheim","Carson","Roseville","Hollywood","Burbank","Chula Vista","Long Beach"],
-  "Chicago":       ["Milwaukee","Rosemont","Tinley Park","Hoffman Estates"],
-  "San Francisco": ["Oakland","San Jose","Sacramento","Mountain View","Concord"],
-  "Washington":    ["Baltimore","Norfolk","Columbia","Bristow","Clarksburg"],
-  "Boston":        ["Mansfield","Providence","Foxborough","Lowell","Gilford"],
-  "Dallas":        ["Fort Worth","Arlington","Frisco","Irving","Grand Prairie"],
-  "Houston":       ["The Woodlands","Sugar Land","Baytown"],
-  "Miami":         ["Fort Lauderdale","West Palm Beach","Sunrise"],
-  "Philadelphia":  ["Camden","Allentown","Bethlehem","Wilmington","Atlantic City","Chester"],
-  "Atlanta":       ["Duluth","Alpharetta","Stone Mountain","Gainesville"],
-  "Seattle":       ["Tacoma","Auburn","Renton","Everett","Redmond"],
-  "Denver":        ["Morrison","Commerce City","Loveland","Broomfield"],
-  "Phoenix":       ["Glendale","Tempe","Scottsdale","Mesa","Peoria"],
-  "Minneapolis":   ["Saint Paul","Shakopee","Prior Lake","Eagan"],
-  "Toronto":       ["Mississauga","Brampton","Hamilton","Oshawa","Vaughan"],
-  "Vancouver":     ["Burnaby","Surrey","Abbotsford","Langley","Coquitlam"],
+  "New York":      ["Newark","Wantagh","East Hartford","Uncasville","Elmont","Queens","Flushing","Bronx","East Rutherford","Brooklyn","Uniondale","Hempstead","Garden City"],
+  "Los Angeles":   ["Inglewood","Anaheim","Carson","Roseville","Hollywood","Burbank","Chula Vista","Long Beach","Pasadena","Glendale","Santa Ana","Irvine","Costa Mesa","El Segundo"],
+  "Chicago":       ["Milwaukee","Rosemont","Tinley Park","Hoffman Estates","Waukegan","Skokie"],
+  "San Francisco": ["Oakland","San Jose","Sacramento","Mountain View","Concord","Santa Clara","San Francisco","Berkeley","Pleasanton"],
+  "Washington":    ["Baltimore","Norfolk","Columbia","Bristow","Clarksburg","Arlington","Alexandria","Fairfax","Silver Spring","Landover"],
+  "Boston":        ["Mansfield","Providence","Foxborough","Lowell","Gilford","Fenway","Worcester"],
+  "Dallas":        ["Fort Worth","Arlington","Frisco","Irving","Grand Prairie","Denton","Plano","McKinney","Allen"],
+  "Houston":       ["The Woodlands","Sugar Land","Baytown","Pasadena","Katy","Pearland"],
+  "Miami":         ["Fort Lauderdale","West Palm Beach","Sunrise","Coral Gables","Miami Gardens","Homestead"],
+  "Philadelphia":  ["Camden","Allentown","Bethlehem","Wilmington","Atlantic City","Chester","Voorhees","South Philadelphia"],
+  "Atlanta":       ["Duluth","Alpharetta","Stone Mountain","Gainesville","Smyrna","Kennesaw","Marietta"],
+  "Seattle":       ["Tacoma","Auburn","Renton","Everett","Redmond","Bellevue","Kent","Shoreline"],
+  "Denver":        ["Morrison","Commerce City","Loveland","Broomfield","Boulder","Westminster","Englewood"],
+  "Phoenix":       ["Glendale","Tempe","Scottsdale","Mesa","Peoria","Chandler","Gilbert","Surprise"],
+  "Minneapolis":   ["Saint Paul","Shakopee","Prior Lake","Eagan","Bloomington","Eden Prairie"],
+  "Toronto":       ["Mississauga","Brampton","Hamilton","Oshawa","Vaughan","Scarborough","Etobicoke","North York"],
+  "Vancouver":     ["Burnaby","Surrey","Abbotsford","Langley","Coquitlam","Richmond","Delta","Maple Ridge"],
+  "Detroit":       ["Auburn Hills","Pontiac","Sterling Heights","Warren","Dearborn","Southfield","Ann Arbor"],
+  "Nashville":     ["Murfreesboro","Franklin","Brentwood","Clarksville","Hendersonville"],
+  "Portland":      ["Beaverton","Hillsboro","Vancouver","Gresham","Lake Oswego"],
+  "Las Vegas":     ["Henderson","North Las Vegas","Paradise","Enterprise","Summerlin"],
+  "San Diego":     ["Chula Vista","El Cajon","Escondido","Carlsbad","Oceanside"],
+  "Pittsburgh":    ["Cranberry Township","Monroeville","McKeesport","Bethel Park"],
+  "Cleveland":     ["Akron","Parma","Strongsville","Independence","Berea"],
+  "Calgary":       ["Airdrie","Cochrane","Chestermere","Okotoks","Strathmore"],
+  "Edmonton":      ["St. Albert","Sherwood Park","Leduc","Spruce Grove"],
 };
 
 // ── SCORING WEIGHTS ────────────────────────────────────────────────────────────
@@ -992,6 +1001,18 @@ function runMatches(){
     aliasMap[metro.toLowerCase()]=METRO_ALIASES[metro].map(function(a){return a.toLowerCase();});
   });
 
+  // Reverse lookup: any suburb/alias city -> canonical metro display name
+  // Used to normalise window grouping so Anaheim/Inglewood/Bronx all card under their metro
+  var cityToMetro={};
+  Object.keys(METRO_ALIASES).forEach(function(metro){
+    cityToMetro[metro.toLowerCase()]=metro;
+    METRO_ALIASES[metro].forEach(function(alias){cityToMetro[alias.toLowerCase()]=metro;});
+  });
+  function resolveMetro(city){
+    var cl=(city||'').toLowerCase().trim();
+    return cityToMetro[cl]||city;
+  }
+
   var matched=LIVE_EVENTS.filter(function(e){
     if(!e.date||e.date<today)return false;
     var cityLower=e.city.toLowerCase();
@@ -1013,33 +1034,29 @@ function runMatches(){
   // first-class citizens. We slide a 3-day window to find the best combos.
   var byWin={};
   matched.sort(function(a,b){
-    var cc=a.city.localeCompare(b.city);
+    var ma=resolveMetro(a.city),mb=resolveMetro(b.city);
+    var cc=ma.localeCompare(mb);
     return cc!==0?cc:a.date.localeCompare(b.date);
   });
 
   // Build initial windows: each unique event date anchors a 3-day window
   // Events within [anchor, anchor+2] days join that window
-  var allDates={};
-  matched.forEach(function(e){
-    if(!allDates[e.city])allDates[e.city]={};
-    allDates[e.city][e.date]=true;
-  });
-
   matched.forEach(function(e){
     var d=new Date(e.date+'T12:00:00');
+    var metro=resolveMetro(e.city); // normalise suburb → metro label
     // Find open window: anchor within last 2 days (so window spans anchor to anchor+2)
     var bestKey=null,bestGap=Infinity;
     for(var k in byWin){
       var w2=byWin[k];
-      if(w2.city!==e.city)continue;
+      if(w2.city!==metro)continue;  // compare metro names, not raw venue cities
       var anchor=new Date(w2.anchorDate+'T12:00:00');
       var gap=(d-anchor)/86400000;
       // Must fit within 3-day window (days 0,1,2 from anchor)
       if(gap>=0&&gap<=2&&gap<bestGap){bestGap=gap;bestKey=k;}
     }
     if(!bestKey){
-      bestKey=e.city+'|'+e.date;
-      byWin[bestKey]={city:e.city,anchorDate:e.date,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
+      bestKey=metro+'|'+e.date;
+      byWin[bestKey]={city:metro,anchorDate:e.date,start:e.date,events:[],nameSeen:{},firstDate:e.date,lastDate:e.date};
     }
     var w=byWin[bestKey];
     if(e.date>w.lastDate)w.lastDate=e.date;
