@@ -296,7 +296,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
       <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches →</button>
 
-      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('month')">This month</button><button class="dp-btn" onclick="setDatePreset('30')">Next 30 days</button><button class="dp-btn" onclick="setDatePreset('90')">Next 90 days</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
+      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('14')">Next 2 weeks</button><button class="dp-btn" onclick="setDatePreset('30')">Next month</button><button class="dp-btn" onclick="setDatePreset('90')">Next 3 months</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
     </div>
   </aside>
 
@@ -831,11 +831,11 @@ async function fetchSeatGeek(keyword,type,startDate,endDate){
   }catch(e){ return []; }
 }
 
-async function fetchTeamGames(team){
+async function fetchTeamGames(team,startDate,endDate){
   if(!isNetlify()) return getMockEvents('team', team);
   try{
     // Use Ticketmaster for sports too now
-    var r=await fetch('/api/concerts?team='+encodeURIComponent(team));
+    var r=await fetch('/api/concerts?team='+encodeURIComponent(team)+(startDate?'&startDate='+startDate:'')+(endDate?'&endDate='+endDate:''));
     var data=await r.json();
     var today=new Date().toISOString().split('T')[0];
     return (data.events||[]).filter(function(ev){return ev.date>=today;}).map(function(ev){
@@ -969,8 +969,8 @@ async function findMatches(){
     promises.push(fetchSeatGeek(a,'artist',S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
   });
   S.teams.forEach(function(t){
-    promises.push(fetchTeamGames(t).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
-    promises.push(fetchSeatGeek(t,'team').then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
+    promises.push(fetchTeamGames(t,S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
+    promises.push(fetchSeatGeek(t,'team',S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
   });
   S.genres.forEach(function(g) { promises.push(fetchGenre(g,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
   S.leagues.forEach(function(l){ promises.push(fetchLeague(l,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
@@ -1015,6 +1015,8 @@ function runMatches(){
 
   var matched=LIVE_EVENTS.filter(function(e){
     if(!e.date||e.date<today)return false;
+    if(S.dateStart&&e.date<S.dateStart)return false;
+    if(S.dateEnd&&e.date>S.dateEnd)return false;
     var cityLower=e.city.toLowerCase();
     var inCity=uc.some(function(c){
       if(cityLower===c||cityLower.includes(c)||c.includes(cityLower))return true;
@@ -1417,7 +1419,7 @@ function updateAnyCityVisibility(){var row=document.getElementById('anyCityRow')
 function clearDateFilter(){S.dateStart=null;S.dateEnd=null;document.getElementById('dateFrom').value='';document.getElementById('dateTo').value='';document.getElementById('dateToggle').textContent='Any dates';document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});}
 function onAnyCityToggle(){S.anyCity=document.getElementById('anyCityCheck').checked;}
 function toggleDateFilter(){var panel=document.getElementById('datePanel');var btn=document.getElementById('dateToggle');var open=panel.style.display==='none';panel.style.display=open?'block':'none';btn.classList.toggle('open',open);}
-function setDatePreset(preset){var today=new Date();var from,to;if(preset==='month'){from=new Date(today.getFullYear(),today.getMonth(),1);to=new Date(today.getFullYear(),today.getMonth()+1,0);}else{var days=parseInt(preset);from=today;to=new Date(today);to.setDate(today.getDate()+days);}var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(from);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;document.getElementById('dateToggle').textContent=S.dateStart+' to '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');updateAnyCityVisibility();}
+function setDatePreset(preset){var today=new Date();var to=new Date(today);to.setDate(today.getDate()+parseInt(preset));var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(today);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;var labels={'14':'Next 2 weeks','30':'Next month','90':'Next 3 months'};document.getElementById('dateToggle').textContent=labels[preset]||S.dateStart+' – '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');updateAnyCityVisibility();}
 function onCustomDate(){S.dateStart=document.getElementById('dateFrom').value||null;S.dateEnd=document.getElementById('dateTo').value||null;var label=(S.dateStart||S.dateEnd)?(S.dateStart||'...')+' to '+(S.dateEnd||'...'):'Any dates';document.getElementById('dateToggle').textContent=label;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});updateAnyCityVisibility();}
 
 async function emailMyMatches(userId, secret) {
@@ -1530,6 +1532,8 @@ async function saveSubscription() {
     teams: [...(S.teams||[])],
     genres: [...(S.genres||[])],
     leagues: [...(S.leagues||[])],
+    date_start: S.dateStart||null,
+    date_end:   S.dateEnd||null,
   };
   if (bar) bar.innerHTML = '<span class="sub-status">Saving...</span>';
   await window._savePrefs(prefs);
@@ -1567,6 +1571,18 @@ async function hydrate(prefs) {
   }
   ['city','artist','team','genre','league'].forEach(t => { try { renderTags(t); } catch(e) {} });
   ['city','artist','team','genre','league'].forEach(t => { try { updateCount(t); } catch(e) {} });
+  // Restore date range only if start date is still in the future
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (prefs.date_start && prefs.date_start >= todayStr) {
+    S.dateStart = prefs.date_start;
+    S.dateEnd   = prefs.date_end || null;
+    const fromEl = document.getElementById('dateFrom');
+    const toEl   = document.getElementById('dateTo');
+    const tog    = document.getElementById('dateToggle');
+    if (fromEl) fromEl.value = S.dateStart;
+    if (toEl && S.dateEnd) toEl.value = S.dateEnd;
+    if (tog) tog.textContent = S.dateStart + ' – ' + (S.dateEnd || '...');
+  }
   try { updateProgress(); } catch(e) {}
 }
 
