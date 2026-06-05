@@ -119,17 +119,28 @@ export default async (req) => {
   // For non-test calls: filter to only unseen events
   let filteredWindows = windows;
   if (userId && userId !== 'test') {
-    const { data: seen } = await supabase
+    // .limit(10000) — Supabase/PostgREST default cap is 1000 rows; without this,
+    // any user with >1000 seen events gets a silently truncated set and re-receives
+    // already-alerted events every day.
+    const { data: seen, error: seenErr } = await supabase
       .from('seen_events')
       .select('tm_event_id')
-      .eq('user_id', userId);
-    const seenIds = new Set((seen || []).map(r => r.tm_event_id));
+      .eq('user_id', userId)
+      .limit(10000);
+    if (seenErr) console.error('[digest] seen_events read error:', seenErr.message);
 
+    const seenIds = new Set((seen || []).map(r => r.tm_event_id));
+    console.log(`[digest] user ${userId} — ${seenIds.size} seen events loaded`);
+
+    const today = new Date().toISOString().split('T')[0];
     filteredWindows = windows.map(w => ({
       ...w,
       events: w.events.filter(e => {
+        if (e.date && e.date < today) return false; // never re-alert past events
         const eid = stableEventId(e);
-        return !seenIds.has(eid);
+        const isSeen = seenIds.has(eid);
+        if (isSeen) console.log(`[digest] skipping seen event: ${eid} (${e.name})`);
+        return !isSeen;
       })
     })).filter(w => w.events.length > 0);
 
@@ -161,18 +172,46 @@ export default async (req) => {
     html:    buildDigestHtml(filteredWindows, homeCity),
   });
 
-  // Mark events as seen so we don't email them again
+  // Mark events as seen so we don't email them again.
+  // Uses INSERT rather than UPSERT to avoid dependency on a unique constraint that
+  // may not exist in Supabase. Duplicate-key errors (23505) are expected and ignored.
   if (userId && userId !== 'test') {
+    const now = new Date().toISOString();
     const eventIds = filteredWindows.flatMap(w => w.events.map(e => ({
-      user_id: userId,
+      user_id:     userId,
       tm_event_id: stableEventId(e),
-      event_name: e.name,
-      event_city: e.city,
-      alerted_at: new Date().toISOString()
+      event_name:  e.name,
+      event_city:  e.city,
+      alerted_at:  now,
     })));
+
     if (eventIds.length) {
-      await supabase.from('seen_events').upsert(eventIds, { onConflict: 'user_id,tm_event_id' });
+      console.log(`[digest] marking ${eventIds.length} events as seen:`, eventIds.map(r => r.tm_event_id));
+      const { error: insertErr } = await supabase.from('seen_events').insert(eventIds);
+      if (insertErr) {
+        // 23505 = unique_violation — row already exists, that's fine
+        if (insertErr.code !== '23505' && !insertErr.message?.includes('duplicate')) {
+          console.error('[digest] seen_events insert error:', insertErr.code, insertErr.message);
+          // Fallback: insert rows individually so partial failures don't block everything
+          for (const row of eventIds) {
+            const { error: rowErr } = await supabase.from('seen_events').insert(row);
+            if (rowErr && rowErr.code !== '23505' && !rowErr.message?.includes('duplicate')) {
+              console.error('[digest] row insert failed for', row.tm_event_id, ':', rowErr.message);
+            }
+          }
+        }
+      }
     }
+
+    // Clean up events alerted more than 13 months ago — past seasons don't need to stay
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - 13);
+    const { error: cleanErr } = await supabase
+      .from('seen_events')
+      .delete()
+      .eq('user_id', userId)
+      .lt('alerted_at', cutoff.toISOString());
+    if (cleanErr) console.error('[digest] seen_events cleanup error:', cleanErr.message);
   }
 
   return new Response(JSON.stringify({ ok: true, sent: 1, to: userEmail }), {
