@@ -192,11 +192,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .sub-active-label{font-size:12px;color:var(--gold);font-weight:500}
 
 /* DATE FILTER */
-.date-filter-wrap{margin-top:12px}.date-toggle{width:100%;background:none;border:1px solid #333;border-radius:8px;color:#aaa;font-size:13px;padding:8px 12px;text-align:left;cursor:pointer;transition:border-color .2s,color .2s}.date-toggle:hover,.date-toggle.open{border-color:#d4a843;color:#d4a843}.date-panel{margin-top:8px}.date-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.dp-btn{flex:1;min-width:80px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#aaa;font-size:12px;padding:5px 8px;cursor:pointer;transition:all .2s}.dp-btn:hover{border-color:#d4a843;color:#d4a843}.dp-btn.active{background:#d4a84322;border-color:#d4a843;color:#d4a843}.date-inputs{display:flex;align-items:center;gap:8px}.date-inputs input[type=date]{flex:1;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#ccc;font-size:12px;padding:5px 8px;cursor:pointer;color-scheme:dark}.date-inputs input[type=date]:focus{outline:none;border-color:#d4a843}.date-sep{color:#555;font-size:14px;flex-shrink:0}
-.reset-btn{border-color:#555;color:#666;}
-.reset-btn:hover{border-color:#aaa;color:#aaa;}
-.any-city-row{margin-top:10px;}
-.any-city-label{display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;cursor:pointer;}
+.date-section{margin:4px 0 12px;border-top:1px solid rgba(255,255,255,.07);padding-top:8px}
+.date-check-row{display:flex;align-items:center;gap:9px;cursor:pointer;padding:4px 0}
+.date-check-row input[type=checkbox]{accent-color:#d4a843;cursor:pointer;flex-shrink:0;width:14px;height:14px}
+.date-check-lbl{font-size:12px;color:#888;flex:1;cursor:pointer;user-select:none}
+.date-active-lbl{color:#d4a843;font-family:'DM Mono',monospace;font-size:10px;white-space:nowrap}
+.date-slider-section{padding:8px 0 4px}
+.dp-btns{display:flex;gap:5px;margin-bottom:12px}
+.dp-btn{flex:1;background:transparent;border:1px solid #2a2a2a;border-radius:6px;color:#666;font-size:11px;padding:4px 0;cursor:pointer;transition:all .15s;text-align:center}
+.dp-btn:hover,.dp-btn.active{border-color:#d4a843;color:#d4a843;background:#d4a84311}
+.range-wrap{padding:0 2px}
+.range-rail-wrap{position:relative;height:22px;margin:0 6px}
+.range-rail{position:absolute;left:0;right:0;height:3px;background:#2a2a2a;top:50%;transform:translateY(-50%);border-radius:2px}
+.range-fill{position:absolute;height:3px;background:#d4a843;top:50%;transform:translateY(-50%);border-radius:2px;pointer-events:none}
+.range-rail-wrap input[type=range]{position:absolute;width:100%;height:0;outline:none;border:none;-webkit-appearance:none;appearance:none;background:none;pointer-events:none;top:50%;margin:0;padding:0}
+.range-rail-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:all;width:16px;height:16px;border-radius:50%;background:#d4a843;cursor:grab;border:2px solid #0d0d0c;box-shadow:0 1px 4px rgba(0,0,0,.6);transition:transform .1s}
+.range-rail-wrap input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);cursor:grabbing}
+.range-rail-wrap input[type=range]::-moz-range-thumb{pointer-events:all;width:14px;height:14px;border-radius:50%;background:#d4a843;cursor:grab;border:2px solid #0d0d0c}
+.range-date-labels{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:#555;margin-top:5px}
+.any-city-row{margin-top:8px;}
+.any-city-label{display:flex;align-items:center;gap:8px;color:#888;font-size:12px;cursor:pointer;}
 .any-city-label input{accent-color:#d4a843;cursor:pointer;}
 .anywhere-pill{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;letter-spacing:.5px;background:#d4a84333;color:#d4a843;border:1px solid #d4a84366;vertical-align:middle;}
 </style>
@@ -294,9 +309,37 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="tags" id="leagueTags"></div>
       <div class="divider"></div>
 
-      <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches →</button>
+      <div class="date-section">
+        <label class="date-check-row">
+          <input type="checkbox" id="dateEnabled" onchange="onDateToggle()">
+          <span class="date-check-lbl">Specific dates</span>
+          <span class="date-active-lbl" id="dateActiveLbl"></span>
+        </label>
+        <div id="dateSliderSection" class="date-slider-section" style="display:none">
+          <div class="dp-btns">
+            <button class="dp-btn" onclick="setDatePreset('14')">2 wks</button>
+            <button class="dp-btn" onclick="setDatePreset('30')">1 mo</button>
+            <button class="dp-btn" onclick="setDatePreset('90')">3 mo</button>
+          </div>
+          <div class="range-wrap">
+            <div class="range-rail-wrap">
+              <div class="range-rail"></div>
+              <div class="range-fill" id="rangeFill"></div>
+              <input type="range" id="rangeFrom" min="0" max="365" value="0" oninput="onRangeInput()" style="z-index:3">
+              <input type="range" id="rangeTo"   min="0" max="365" value="90" oninput="onRangeInput()" style="z-index:4">
+            </div>
+            <div class="range-date-labels">
+              <span id="rangeLabelFrom">Today</span>
+              <span id="rangeLabelTo"></span>
+            </div>
+          </div>
+          <div id="anyCityRow" style="display:none" class="any-city-row">
+            <label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label>
+          </div>
+        </div>
+      </div>
 
-      <div class="date-filter-wrap" id="dateFilterWrap"><button class="date-toggle" id="dateToggle" onclick="toggleDateFilter()">Any dates &#9662;</button><div class="date-panel" id="datePanel" style="display:none"><div class="date-presets"><button class="dp-btn reset-btn" onclick="clearDateFilter()">Any dates</button><button class="dp-btn" onclick="setDatePreset('14')">Next 2 weeks</button><button class="dp-btn" onclick="setDatePreset('30')">Next month</button><button class="dp-btn" onclick="setDatePreset('90')">Next 3 months</button></div><div class="date-inputs"><input type="date" id="dateFrom" onchange="onCustomDate()"><span class="date-sep">→</span><input type="date" id="dateTo" onchange="onCustomDate()"><div class="any-city-row" id="anyCityRow" style="display:none"><label class="any-city-label"><input type="checkbox" id="anyCityCheck" onchange="onAnyCityToggle()"> Open to any city</label></div></div></div>
+      <button class="run-btn" id="runBtn" onclick="findMatches()">Find my matches →</button>
     </div>
   </aside>
 
@@ -361,8 +404,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────────────
 var S = { cities:[], artists:[], teams:[], genres:[], leagues:[], home:'' };
-var _today=new Date(); var _end=new Date(_today); _end.setFullYear(_today.getFullYear()+1);
-S.dateStart=_today.toISOString().split('T')[0]; S.dateEnd=_end.toISOString().split('T')[0];
+S.dateStart=null; S.dateEnd=null;
 var KEYS = { city:'cities', artist:'artists', team:'teams', genre:'genres', league:'leagues' };
 function getArr(type){ return S[KEYS[type]]; }
 
@@ -1415,12 +1457,74 @@ function sortMatches(val){
   else s.sort(function(a,b){return b.score-a.score;});
   renderGrid(s);
 }
+// ── DATE SLIDER ───────────────────────────────────────────────────────────────
+var _dateBase=(function(){var d=new Date();d.setHours(0,0,0,0);return d;})();
+var _prevRangeFrom=0,_prevRangeTo=90;
+function _dayOffset(n){var d=new Date(_dateBase);d.setDate(_dateBase.getDate()+n);return d.toISOString().split('T')[0];}
+function _fmtShort(iso){var d=new Date(iso+'T12:00:00');return d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});}
+function updateRangeFill(){
+  var from=parseInt(document.getElementById('rangeFrom').value)||0;
+  var to=parseInt(document.getElementById('rangeTo').value)||90;
+  var fill=document.getElementById('rangeFill');
+  if(fill){fill.style.left=(from/365*100)+'%';fill.style.width=((to-from)/365*100)+'%';}
+  var lf=document.getElementById('rangeLabelFrom');
+  var lt=document.getElementById('rangeLabelTo');
+  var lbl=document.getElementById('dateActiveLbl');
+  var startLbl=from===0?'Today':_fmtShort(_dayOffset(from));
+  var endLbl=_fmtShort(_dayOffset(to));
+  if(lf)lf.textContent=startLbl;
+  if(lt)lt.textContent=endLbl;
+  if(lbl)lbl.textContent=startLbl+' – '+endLbl;
+}
+function onRangeInput(){
+  var fromEl=document.getElementById('rangeFrom');
+  var toEl=document.getElementById('rangeTo');
+  var from=parseInt(fromEl.value)||0;
+  var to=parseInt(toEl.value)||1;
+  if(from>=to){
+    if(from!==_prevRangeFrom){from=Math.max(0,to-1);fromEl.value=from;}
+    else{to=Math.min(365,from+1);toEl.value=to;}
+  }
+  _prevRangeFrom=from;_prevRangeTo=to;
+  S.dateStart=_dayOffset(from);S.dateEnd=_dayOffset(to);
+  document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});
+  updateRangeFill();
+  updateAnyCityVisibility();
+}
+function onDateToggle(){
+  var cb=document.getElementById('dateEnabled');
+  var sec=document.getElementById('dateSliderSection');
+  if(cb.checked){
+    sec.style.display='block';
+    if(!S.dateStart)setDatePreset('30');
+    else updateRangeFill();
+  }else{
+    sec.style.display='none';
+    S.dateStart=null;S.dateEnd=null;
+    var lbl=document.getElementById('dateActiveLbl');if(lbl)lbl.textContent='';
+    updateAnyCityVisibility();
+  }
+}
+function setDatePreset(preset){
+  var days=parseInt(preset);
+  var fromEl=document.getElementById('rangeFrom');
+  var toEl=document.getElementById('rangeTo');
+  if(fromEl){fromEl.value=0;_prevRangeFrom=0;}
+  if(toEl){toEl.value=days;_prevRangeTo=days;}
+  S.dateStart=_dayOffset(0);S.dateEnd=_dayOffset(days);
+  document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});
+  if(event&&event.target)event.target.classList.add('active');
+  updateRangeFill();updateAnyCityVisibility();
+}
+function clearDateFilter(){
+  S.dateStart=null;S.dateEnd=null;
+  var cb=document.getElementById('dateEnabled');if(cb)cb.checked=false;
+  var sec=document.getElementById('dateSliderSection');if(sec)sec.style.display='none';
+  var lbl=document.getElementById('dateActiveLbl');if(lbl)lbl.textContent='';
+  updateAnyCityVisibility();
+}
 function updateAnyCityVisibility(){var row=document.getElementById('anyCityRow');if(row)row.style.display=(S.dateStart||S.dateEnd)?'block':'none';}
-function clearDateFilter(){S.dateStart=null;S.dateEnd=null;document.getElementById('dateFrom').value='';document.getElementById('dateTo').value='';document.getElementById('dateToggle').textContent='Any dates';document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});}
 function onAnyCityToggle(){S.anyCity=document.getElementById('anyCityCheck').checked;}
-function toggleDateFilter(){var panel=document.getElementById('datePanel');var btn=document.getElementById('dateToggle');var open=panel.style.display==='none';panel.style.display=open?'block':'none';btn.classList.toggle('open',open);}
-function setDatePreset(preset){var today=new Date();var to=new Date(today);to.setDate(today.getDate()+parseInt(preset));var fmt=function(d){return d.toISOString().split('T')[0];};S.dateStart=fmt(today);S.dateEnd=fmt(to);document.getElementById('dateFrom').value=S.dateStart;document.getElementById('dateTo').value=S.dateEnd;var labels={'14':'Next 2 weeks','30':'Next month','90':'Next 3 months'};document.getElementById('dateToggle').textContent=labels[preset]||S.dateStart+' – '+S.dateEnd;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});if(event&&event.target)event.target.classList.add('active');updateAnyCityVisibility();}
-function onCustomDate(){S.dateStart=document.getElementById('dateFrom').value||null;S.dateEnd=document.getElementById('dateTo').value||null;var label=(S.dateStart||S.dateEnd)?(S.dateStart||'...')+' to '+(S.dateEnd||'...'):'Any dates';document.getElementById('dateToggle').textContent=label;document.querySelectorAll('.dp-btn').forEach(function(b){b.classList.remove('active');});updateAnyCityVisibility();}
 
 async function emailMyMatches(userId, secret) {
   if (!userId && !secret) {
@@ -1571,17 +1675,24 @@ async function hydrate(prefs) {
   }
   ['city','artist','team','genre','league'].forEach(t => { try { renderTags(t); } catch(e) {} });
   ['city','artist','team','genre','league'].forEach(t => { try { updateCount(t); } catch(e) {} });
-  // Restore date range only if start date is still in the future
+  // Restore date range — only if start is still in the future
   const todayStr = new Date().toISOString().split('T')[0];
   if (prefs.date_start && prefs.date_start >= todayStr) {
-    S.dateStart = prefs.date_start;
-    S.dateEnd   = prefs.date_end || null;
-    const fromEl = document.getElementById('dateFrom');
-    const toEl   = document.getElementById('dateTo');
-    const tog    = document.getElementById('dateToggle');
-    if (fromEl) fromEl.value = S.dateStart;
-    if (toEl && S.dateEnd) toEl.value = S.dateEnd;
-    if (tog) tog.textContent = S.dateStart + ' – ' + (S.dateEnd || '...');
+    S.dateStart = prefs.date_start; S.dateEnd = prefs.date_end || null;
+    const cb = document.getElementById('dateEnabled');
+    const sec = document.getElementById('dateSliderSection');
+    if (cb) cb.checked = true;
+    if (sec) sec.style.display = 'block';
+    // Map saved dates back to slider offsets
+    const base = new Date(); base.setHours(0,0,0,0);
+    const msPerDay = 86400000;
+    const fromDays = Math.round((new Date(S.dateStart+'T12:00:00') - base) / msPerDay);
+    const toDays   = S.dateEnd ? Math.round((new Date(S.dateEnd+'T12:00:00') - base) / msPerDay) : 90;
+    const fromEl = document.getElementById('rangeFrom');
+    const toEl   = document.getElementById('rangeTo');
+    if (fromEl) fromEl.value = Math.max(0, fromDays);
+    if (toEl)   toEl.value   = Math.min(365, toDays);
+    try { updateRangeFill(); } catch(e) {}
   }
   try { updateProgress(); } catch(e) {}
 }
