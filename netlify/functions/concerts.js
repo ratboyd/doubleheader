@@ -28,10 +28,21 @@ export default async (req, context) => {
 
   const GENRE_IDS = {
     "country":"KnvZfZ7vAv6","rock":"KnvZfZ7vAeJ","pop":"KnvZfZ7vAev",
-    "edm":"KnvZfZ7vAvF","electronic":"KnvZfZ7vAvF","hiphop":"KnvZfZ7vAv1",
-    "hip-hop":"KnvZfZ7vAv1","rnb":"KnvZfZ7vAvv","r&b":"KnvZfZ7vAvv",
+    // edm/electronic intentionally absent — handled by GENRE_CLASSNAME below
+    "hiphop":"KnvZfZ7vAv1","hip-hop":"KnvZfZ7vAv1",
+    "rnb":"KnvZfZ7vAvv","r&b":"KnvZfZ7vAvv",
     "jazz":"KnvZfZ7vAvE","classical":"KnvZfZ7vAeI","metal":null,
     "folk":null,"indie":"KnvZfZ7vAeJ","alternative":"KnvZfZ7vAeJ",
+  };
+
+  // Genres where classificationName beats genreId because TM tags many of these
+  // acts under a *different* parent genre with this as a subgenre.
+  // classificationName matches at segment, genre, AND subgenre level.
+  // EDM: Mau P / Dom Dolla / Chris Lake etc. are often "Pop > Electronic" on TM,
+  // so genreId=Electronic (genre-level only) misses them entirely.
+  const GENRE_CLASSNAME = {
+    "edm":        "Electronic",
+    "electronic": "Electronic",
   };
 
   const LEAGUE_SUBGENRES = {
@@ -67,10 +78,20 @@ export default async (req, context) => {
     params.set("classificationName", "Sports");
     params.set("keyword", team);
   } else if (genre) {
-    params.set("classificationName", "Music");
-    const gid = GENRE_IDS[genre.toLowerCase()];
-    if (gid) params.set("genreId", gid);
-    else { params.set("keyword", genre); params.set("classificationName", "Music"); }
+    const cl    = genre.toLowerCase();
+    const cname = GENRE_CLASSNAME[cl];
+    const gid   = GENRE_IDS[cl];
+    if (cname) {
+      // classificationName matches across all TM hierarchy levels (subgenre too)
+      params.set("classificationName", cname);
+    } else if (gid) {
+      params.set("classificationName", "Music");
+      params.set("genreId", gid);
+    } else {
+      // Keyword fallback for genres without a reliable TM ID (metal, folk, etc.)
+      params.set("classificationName", "Music");
+      params.set("keyword", genre);
+    }
   } else if (comedy) {
     // Arts & Theatre segment, Comedy genre
     // classificationName=Comedy matches at any TM hierarchy level (most reliable)
@@ -136,7 +157,8 @@ export default async (req, context) => {
       if (isClassical(ev)) return false;
       // For genre keyword searches (null genreId), validate the returned event
       // actually matches the genre Ã¢ÂÂ prevents Blake Shelton showing up for "metal"
-      if (genre && !GENRE_IDS[genre.toLowerCase()]) {
+      // Skip synonym validation for classificationName searches — TM already filtered accurately
+      if (genre && !GENRE_IDS[genre.toLowerCase()] && !GENRE_CLASSNAME[genre.toLowerCase()]) {
         const evGenre = (ev.genre + " " + ev.subgenre).toLowerCase();
         const searchGenre = genre.toLowerCase();
         const GENRE_SYNONYMS = {
