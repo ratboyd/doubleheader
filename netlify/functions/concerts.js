@@ -200,19 +200,10 @@ export default async (req, context) => {
         const TRIBUTE_ATTRACTION = ['experience', 'tribute', 'salute', 'legacy', 'allstar', 'all star'];
         if (!attractionMatch && TRIBUTE_ATTRACTION.some(w => artistLower.includes(w))) return false;
       }
-      // For team searches: use subgenre to filter out wrong-league teams
-      // e.g. "Dallas Stars" (NHL) vs "Texas Stars" (AHL)
-      if (team) {
-        const teamLower = team.toLowerCase();
-        const subgenreLower = (ev.subgenre || '').toLowerCase();
-
-        // Drop minor/wrong league subgenres
-        const MINOR_LEAGUES = ['ahl', 'echl', 'chl', 'ohl', 'whl', 'qmjhl', 'nll',
-          'nba g league', 'usl', 'usl championship', 'usl league one', 'nwsl'];
-        if (MINOR_LEAGUES.some(ml => subgenreLower.includes(ml))) return false;
-
-        // Drop non-game products: stadium tours, pregame experiences, VIP packages
-        // that TM classifies as Sports but are not actual scheduled games
+      // Non-game junk filter — applies to BOTH team and league searches.
+      // TM classifies stadium tours, pregame experiences and VIP packages under
+      // Sports / the relevant league subgenre, so they appear in both paths.
+      if (team || league) {
         const NON_GAME = [
           'stadium tour', 'ballpark tour', 'arena tour', 'field tour', 'park tour',
           'pregame', 'pre-game', 'glimpse', 'behind the scenes', 'behind-the-scenes',
@@ -221,6 +212,17 @@ export default async (req, context) => {
           'hospitality package', 'club access', 'guided tour',
         ];
         if (NON_GAME.some(w => nameLower.includes(w))) return false;
+      }
+
+      // Team-specific checks (not needed for broad league searches)
+      if (team) {
+        const teamLower = team.toLowerCase();
+        const subgenreLower = (ev.subgenre || '').toLowerCase();
+
+        // Drop minor/wrong league subgenres
+        const MINOR_LEAGUES = ['ahl', 'echl', 'chl', 'ohl', 'whl', 'qmjhl', 'nll',
+          'nba g league', 'usl', 'usl championship', 'usl league one', 'nwsl'];
+        if (MINOR_LEAGUES.some(ml => subgenreLower.includes(ml))) return false;
 
         // Require ALL significant words of the team name in the event title.
         // Use length > 2 (not > 3) so 3-char words like "Sox", "Red", "Bay" are
@@ -236,7 +238,8 @@ export default async (req, context) => {
     // Deduplicate by artist+date+city: for each group, prefer the canonical show
     // (exact artist name match) over suite reservations, 2-day bundle tickets, etc.
     const BUNDLE_WORDS = ['suite reservation', '2-day ticket', '2day ticket', 'cannot split',
-      'hotel package', 'vip package', 'pre-sale', 'meet & greet', 'meet and greet'];
+      'hotel package', 'vip package', 'pre-sale', 'meet & greet', 'meet and greet',
+      'premium seating', 'premium package', 'platinum package', '* premium', 'premium *'];
     const dedupMap = new Map();
     for (const ev of filteredEvents) {
       const key = (ev.artist||'').toLowerCase() + '|' + ev.date + '|' + ev.city.toLowerCase();
