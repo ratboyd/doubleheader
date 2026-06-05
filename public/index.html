@@ -921,7 +921,7 @@ async function fetchComedy(cities){
   return results;
 }
 
-async function fetchGenre(genre, cities){
+async function fetchGenre(genre, cities, startDate, endDate){
   if(!isNetlify()) return []; // genres only in live mode
   var results=[];
   function pushEvs(data){
@@ -929,23 +929,31 @@ async function fetchGenre(genre, cities){
       results.push({city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
     });
   }
+  // Date params ensure the TM 100-event cap covers the user's actual window,
+  // not a random slice of the full year.
+  var dateParams=(startDate?'&startDate='+startDate:'')+(endDate?'&endDate='+endDate:'');
   try{
-    // Global call: catches major markets (NY, LA, Chicago) and works around TM's
-    // strict genre+city filtering that returns 0 for metro-area venue cities.
-    var r0=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase()));
+    // Global call: catches major markets
+    var r0=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+dateParams);
     pushEvs(await r0.json());
-    // Per-city calls for each selected city: covers smaller cities (Detroit, Nashville)
-    // that may not appear in the top-100 global results.
-    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,6);
+    // Per-city calls expanded with metro aliases: e.g. Dallas user also searches
+    // Arlington (Globe Life Field) and Fort Worth (Billy Bob's Texas) so suburban
+    // venues aren't missed by the exact-city TM filter.
+    var cityList=[];
+    cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,4).forEach(function(c){
+      cityList.push(c);
+      (METRO_ALIASES[c]||[]).slice(0,3).forEach(function(a){cityList.push(a);});
+    });
+    cityList=[...new Set(cityList)].slice(0,12);
     for(var i=0;i<cityList.length;i++){
-      var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i]));
+      var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i])+dateParams);
       pushEvs(await r.json());
     }
   }catch(e){}
   return results;
 }
 
-async function fetchLeague(league, cities){
+async function fetchLeague(league, cities, startDate, endDate){
   if(!isNetlify()) return [];
   var results=[];
   function pushEvs(data){
@@ -953,12 +961,23 @@ async function fetchLeague(league, cities){
       results.push({city:ev.city,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
     });
   }
+  // Date params focus the 100-event TM cap on the user's date window.
+  // Without this, MLB (15 games/day) fills the cap in ~7 days — games in
+  // weeks 2-4 are never returned at all.
+  var dateParams=(startDate?'&startDate='+startDate:'')+(endDate?'&endDate='+endDate:'');
   try{
-    var r0=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase()));
+    var r0=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase())+dateParams);
     pushEvs(await r0.json());
-    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,6);
+    // Expand per-city calls with metro aliases so stadium cities outside the
+    // user's exact city name are covered (Globe Life Field is in Arlington, not Dallas).
+    var cityList=[];
+    cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,4).forEach(function(c){
+      cityList.push(c);
+      (METRO_ALIASES[c]||[]).slice(0,3).forEach(function(a){cityList.push(a);});
+    });
+    cityList=[...new Set(cityList)].slice(0,12);
     for(var i=0;i<cityList.length;i++){
-      var r=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase())+'&city='+encodeURIComponent(cityList[i]));
+      var r=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase())+'&city='+encodeURIComponent(cityList[i])+dateParams);
       pushEvs(await r.json());
     }
   }catch(e){}
@@ -1049,8 +1068,8 @@ async function findMatches(){
     promises.push(fetchTeamGames(t,S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
     promises.push(fetchSeatGeek(t,'team',S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); }));
   });
-  S.genres.forEach(function(g) { promises.push(fetchGenre(g,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
-  S.leagues.forEach(function(l){ promises.push(fetchLeague(l,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
+  S.genres.forEach(function(g) { promises.push(fetchGenre(g,S.cities,S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
+  S.leagues.forEach(function(l){ promises.push(fetchLeague(l,S.cities,S.dateStart,S.dateEnd).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
   if(S.comedy){ promises.push(fetchComedy(S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); }
 
   await Promise.all(promises);
