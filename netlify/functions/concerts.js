@@ -178,14 +178,28 @@ export default async (req, context) => {
       if (team) {
         const teamLower = team.toLowerCase();
         const subgenreLower = (ev.subgenre || '').toLowerCase();
-        // Known minor/wrong league subgenres to reject for major-league searches
+
+        // Drop minor/wrong league subgenres
         const MINOR_LEAGUES = ['ahl', 'echl', 'chl', 'ohl', 'whl', 'qmjhl', 'nll',
           'nba g league', 'usl', 'usl championship', 'usl league one', 'nwsl'];
         if (MINOR_LEAGUES.some(ml => subgenreLower.includes(ml))) return false;
-        // Require ALL significant words of the team name in the event title
-        // e.g. "dallas" AND "stars" must both appear — prevents generic "Stars Night"
-        // events or alumni shows from matching "Dallas Stars"
-        const teamWords = teamLower.split(/\s+/).filter(w => w.length > 3);
+
+        // Drop non-game products: stadium tours, pregame experiences, VIP packages
+        // that TM classifies as Sports but are not actual scheduled games
+        const NON_GAME = [
+          'stadium tour', 'ballpark tour', 'arena tour', 'field tour', 'park tour',
+          'pregame', 'pre-game', 'glimpse', 'behind the scenes', 'behind-the-scenes',
+          'fan experience', 'fan fest', 'fanfest', 'batting practice',
+          'classic tour', 'premium experience', 'vip experience',
+          'hospitality package', 'club access', 'guided tour',
+        ];
+        if (NON_GAME.some(w => nameLower.includes(w))) return false;
+
+        // Require ALL significant words of the team name in the event title.
+        // Use length > 2 (not > 3) so 3-char words like "Sox", "Red", "Bay" are
+        // included — otherwise "Red Sox" produces an empty array and the check
+        // is skipped entirely, letting every Sports event through.
+        const teamWords = teamLower.split(/\s+/).filter(w => w.length > 2);
         if (teamWords.length > 0 && !teamWords.every(w => nameLower.includes(w))) return false;
       }
       return true;
