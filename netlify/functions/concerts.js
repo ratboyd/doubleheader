@@ -7,12 +7,13 @@ export default async (req, context) => {
   const team    = url.searchParams.get("team");
   const genre   = url.searchParams.get("genre");
   const league  = url.searchParams.get("league");
+  const comedy  = url.searchParams.get("comedy");
   const city    = url.searchParams.get("city");
   const page    = url.searchParams.get("page") || "0";
   const startDate = url.searchParams.get("startDate");
   const endDate   = url.searchParams.get("endDate");
 
-  if (!artist && !team && !genre && !league && !city) {
+  if (!artist && !team && !genre && !league && !comedy && !city) {
     return new Response(JSON.stringify({ error: `Provide at least one search param` }), {
       status: 400, headers: { "Content-Type": "application/json" }
     });
@@ -70,6 +71,10 @@ export default async (req, context) => {
     const gid = GENRE_IDS[genre.toLowerCase()];
     if (gid) params.set("genreId", gid);
     else { params.set("keyword", genre); params.set("classificationName", "Music"); }
+  } else if (comedy) {
+    // Arts & Theatre segment, Comedy genre
+    // classificationName=Comedy matches at any TM hierarchy level (most reliable)
+    params.set("classificationName", "Comedy");
   } else if (league) {
     const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
     if (sg) {
@@ -82,7 +87,7 @@ export default async (req, context) => {
     }
   }
 
-  if (city && (genre || league)) params.set("city", city);
+  if (city && (genre || league || comedy)) params.set("city", city);
 
   const tmUrl = `https://app.ticketmaster.com/discovery/v2/events.json?${params}`;
 
@@ -105,7 +110,7 @@ export default async (req, context) => {
         country:  venue?.country?.countryCode || "",
         url:      ev.url,
         artist:   ev._embedded?.attractions?.[0]?.name || ev.name,
-        type:     cls?.segment?.name === "Sports" ? "team" : "artist",
+        type:     comedy ? "comedy" : (cls?.segment?.name === "Sports" ? "team" : "artist"),
         genre:    cls?.genre?.name || "",
         subgenre: cls?.subGenre?.name || "",
         broadMatch: !!(genre || league),

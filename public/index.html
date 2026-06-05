@@ -112,12 +112,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .score-lbl{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;text-align:right}
 .mcard-events{padding:0 15px 13px;display:flex;flex-direction:column;gap:5px}
 .mevent{display:flex;align-items:flex-start;gap:7px;padding:6px 9px;border-radius:7px}
-.mevent.type-artist{background:var(--purple-lt)}.mevent.type-team{background:var(--teal-lt)}.mevent.type-broad{background:var(--rust-lt)}.mevent.type-other{background:var(--surface)}
+.mevent.type-artist{background:var(--purple-lt)}.mevent.type-team{background:var(--teal-lt)}.mevent.type-broad{background:var(--rust-lt)}.mevent.type-comedy{background:#fff3e0}.mevent.type-other{background:var(--surface)}
 .me-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.type-artist .me-dot{background:var(--purple)}.type-team .me-dot{background:var(--teal)}.type-broad .me-dot{background:var(--rust)}
+.type-artist .me-dot{background:var(--purple)}.type-team .me-dot{background:var(--teal)}.type-broad .me-dot{background:var(--rust)}.type-comedy .me-dot{background:#e65100}
 .me-body{flex:1;min-width:0}
 .me-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.type-artist .me-name{color:#3b2f99}.type-team .me-name{color:#0f5c49}.type-broad .me-name{color:var(--rust)}
+.type-artist .me-name{color:#3b2f99}.type-team .me-name{color:#0f5c49}.type-broad .me-name{color:var(--rust)}.type-comedy .me-name{color:#b35a00}
 .me-venue{font-size:10px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);flex-shrink:0;margin-top:3px}
 .me-link{font-size:10px;color:var(--gold);text-decoration:none;margin-left:4px;flex-shrink:0;margin-top:3px}
@@ -307,6 +307,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
       <div class="broad-note">Good for baseball in the sun or playoff hockey — surfaces games without dominating results.</div>
       <div class="qa-wrap" id="leagueQA"></div>
       <div class="tags" id="leagueTags"></div>
+
+      <!-- COMEDY — primary scoring, pairs with sports & music -->
+      <div class="divider soft"></div>
+      <div class="sb-head"><span class="sb-label primary">Comedy shows</span></div>
+      <div class="broad-note">Stand-up & comedy events — scored same as music. A comedian + a game = Double.</div>
+      <button class="qa" id="comedyToggleBtn" onclick="toggleComedy()" style="margin-top:6px;width:100%;justify-content:center">🎤 Include comedy shows</button>
+
       <div class="divider"></div>
 
       <div class="date-section">
@@ -403,7 +410,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────────────
-var S = { cities:[], artists:[], teams:[], genres:[], leagues:[], home:'' };
+var S = { cities:[], artists:[], teams:[], genres:[], leagues:[], home:'', comedy:false };
 S.dateStart=null; S.dateEnd=null;
 var KEYS = { city:'cities', artist:'artists', team:'teams', genre:'genres', league:'leagues' };
 function getArr(type){ return S[KEYS[type]]; }
@@ -886,6 +893,34 @@ async function fetchTeamGames(team,startDate,endDate){
   }catch(e){ return getMockEvents('team',team); }
 }
 
+function toggleComedy(){
+  S.comedy=!S.comedy;
+  var btn=document.getElementById('comedyToggleBtn');
+  if(btn){btn.textContent=S.comedy?'🎤 Comedy included ✓':'🎤 Include comedy shows';btn.classList.toggle('used',S.comedy);}
+}
+
+async function fetchComedy(cities){
+  if(!isNetlify()) return [];
+  var results=[];
+  function pushEvs(data){
+    (data.events||[]).forEach(function(ev){
+      results.push({city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'comedy',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0});
+    });
+  }
+  try{
+    // Global call: catches major markets
+    var r0=await fetch('/api/concerts?comedy=1');
+    pushEvs(await r0.json());
+    // Per-city calls for user's saved cities
+    var cityList=cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,6);
+    for(var i=0;i<cityList.length;i++){
+      var r=await fetch('/api/concerts?comedy=1&city='+encodeURIComponent(cityList[i]));
+      pushEvs(await r.json());
+    }
+  }catch(e){}
+  return results;
+}
+
 async function fetchGenre(genre, cities){
   if(!isNetlify()) return []; // genres only in live mode
   var results=[];
@@ -999,8 +1034,8 @@ async function findMatches(){
   setNavStatus('loading','Fetching...');
 
   LIVE_EVENTS=[];
-  // TM + SeatGeek each for artists/teams; single source for genres/leagues
-  var total=S.artists.length*2+S.teams.length*2+S.genres.length+S.leagues.length;
+  // TM + SeatGeek each for artists/teams; single source for genres/leagues/comedy
+  var total=S.artists.length*2+S.teams.length*2+S.genres.length+S.leagues.length+(S.comedy?1:0);
   var done=0;
 
   function tick(){ done++; document.getElementById('loadingDetail').textContent='Fetched '+done+' of '+total+' sources...'; }
@@ -1016,6 +1051,7 @@ async function findMatches(){
   });
   S.genres.forEach(function(g) { promises.push(fetchGenre(g,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
   S.leagues.forEach(function(l){ promises.push(fetchLeague(l,S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); });
+  if(S.comedy){ promises.push(fetchComedy(S.cities).then(function(evs){ LIVE_EVENTS=LIVE_EVENTS.concat(evs);tick(); })); }
 
   await Promise.all(promises);
 
@@ -1070,6 +1106,7 @@ function runMatches(){
     if(e.broadMatch)return true;
     if(e.type==='artist') return ua.some(function(a){return e.name.toLowerCase()===a||e.name.toLowerCase().includes(a)||a.includes(e.name.toLowerCase());});
     if(e.type==='team')   return ut.some(function(t){return e.name.toLowerCase()===t||e.name.toLowerCase().includes(t)||t.includes(e.name.toLowerCase());});
+    if(e.type==='comedy') return S.comedy;
     return false;
   });
 
@@ -1116,7 +1153,7 @@ function runMatches(){
     var weightedScore=w.events.reduce(function(s,e){return s+(e.weight||1.0);},0);
     var primaryHits=new Set(w.events.filter(function(e){return !e.broadMatch;}).map(function(e){return e.artist||e.name;})).size;
     var broadHits=w.events.filter(function(e){return e.broadMatch;}).length;
-    var artistHits=new Set(w.events.filter(function(e){return e.type==='artist'&&!e.broadMatch;}).map(function(e){return e.artist||e.name;})).size;
+    var artistHits=new Set(w.events.filter(function(e){return (e.type==='artist'||e.type==='comedy')&&!e.broadMatch;}).map(function(e){return e.artist||e.name;})).size;
     var teamHits=w.events.filter(function(e){return e.type==='team'&&!e.broadMatch;}).length;
 
     var score=Math.round(weightedScore*30);
@@ -1636,6 +1673,7 @@ async function saveSubscription() {
     teams: [...(S.teams||[])],
     genres: [...(S.genres||[])],
     leagues: [...(S.leagues||[])],
+    comedy: S.comedy||false,
     date_start: S.dateStart||null,
     date_end:   S.dateEnd||null,
   };
@@ -1675,6 +1713,7 @@ async function hydrate(prefs) {
   }
   ['city','artist','team','genre','league'].forEach(t => { try { renderTags(t); } catch(e) {} });
   ['city','artist','team','genre','league'].forEach(t => { try { updateCount(t); } catch(e) {} });
+  if (prefs.comedy && !S.comedy) try { toggleComedy(); } catch(e) {}
   // Restore date range — only if start is still in the future
   const todayStr = new Date().toISOString().split('T')[0];
   if (prefs.date_start && prefs.date_start >= todayStr) {
