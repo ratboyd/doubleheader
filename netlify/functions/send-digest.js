@@ -56,11 +56,13 @@ function buildDigestHtml(windows, homeCity) {
       </div>`).join('');
 
     const flightHoursTag = w.flightHours ? `<span style="font-size:12px;color:#888;">${w.flightHours}h flight</span>` : '';
-    const flightRow = w.flightUrl ? `
+    const hotelLink = w.hotelUrl ? `<a href="${w.hotelUrl}" style="font-size:11px;color:#d4a843;font-weight:600;text-decoration:none;">Hotels →</a>` : '';
+    const flightRow = (w.flightUrl || w.hotelUrl) ? `
       <div style="margin-top:10px;padding:8px 12px;background:#111;border-radius:6px;display:flex;align-items:center;gap:10px;">
         <span style="font-size:12px;color:#aaa;">✈ ${homeCity || 'YYC'} → ${w.city}</span>
         ${w.flightHours ? `<span style="font-size:12px;color:#555;">·</span>${flightHoursTag}` : ''}
-        <a href="${w.flightUrl}" style="margin-left:auto;font-size:11px;color:#d4a843;font-weight:600;text-decoration:none;">Search flights →</a>
+        ${w.flightUrl ? `<a href="${w.flightUrl}" style="margin-left:auto;font-size:11px;color:#d4a843;font-weight:600;text-decoration:none;">Search flights →</a>` : '<span style="margin-left:auto;"></span>'}
+        ${hotelLink}
       </div>` : '';
 
     return `

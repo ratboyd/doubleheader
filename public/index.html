@@ -124,8 +124,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .me-link:hover{text-decoration:underline}
 .broad-tag{font-size:9px;padding:1px 5px;border-radius:4px;background:var(--rust-lt);color:var(--rust);border:1px solid var(--rust-bd);margin-left:4px;vertical-align:middle;font-family:'DM Mono',monospace;letter-spacing:.02em}
 .mcard-foot{padding:7px 15px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
-.flight-link{font-size:12px;color:var(--ink);text-decoration:none;font-weight:600;background:var(--gold-lt);border:1px solid var(--gold-bd);padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
-.flight-link:hover{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.flight-link,.hotel-link{font-size:12px;color:var(--ink);text-decoration:none;font-weight:600;background:var(--gold-lt);border:1px solid var(--gold-bd);padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.flight-link:hover,.hotel-link:hover{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.hotel-link{margin-left:6px}
 .flight-info{font-size:11px;color:var(--ink3)}.flight-info strong{color:var(--ink2)}
 .tier-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;font-family:'DM Mono',monospace;white-space:nowrap}
 .tier-pill.triple{background:var(--teal-lt);color:var(--teal)}
@@ -548,7 +549,26 @@ function getSkyscannerUrl(city, firstDate, lastDate) {
   params += '&outboundDate=' + inbound;
   params += '&inboundDate=' + outbound;
   params += '&adults=1&cabinclass=economy&market=CA&locale=en-CA&currency=CAD';
+  if (AFFIL.skyscannerPartnerId) params += '&mediaPartnerId=' + encodeURIComponent(AFFIL.skyscannerPartnerId);
   return base + params;
+}
+
+// Booking.com hotel search for the trip window: check in the day before the
+// first event, out the day after the last. Affiliate aid is appended only once
+// AFFIL.bookingAid is set (program approval pending) — link works either way.
+function getHotelUrl(city, firstDate, lastDate) {
+  if (!city || !firstDate) return '';
+  function shiftDate(dateStr, days) {
+    var d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+  }
+  var checkin  = shiftDate(firstDate, -1);
+  var checkout = shiftDate(lastDate || firstDate, 1);
+  var u = 'https://www.booking.com/searchresults.html?ss=' + encodeURIComponent(city) +
+          '&checkin=' + checkin + '&checkout=' + checkout + '&group_adults=1&no_rooms=1';
+  if (AFFIL.bookingAid) u += '&aid=' + encodeURIComponent(AFFIL.bookingAid);
+  return u;
 }
 
 // ── GEOLOCATION ───────────────────────────────────────────────────────────────
@@ -1409,6 +1429,12 @@ function buildCard(w){
       flightHtml='<a class="flight-link" href="'+skyUrl+'" target="_blank">'+flightLabel+'</a>';
     }
   }
+  // Hotel link for any trip outside the home city (no origin needed, so it
+  // renders even when no home city is set)
+  if(fh!==0){
+    var hotelUrl=getHotelUrl(w.city, firstEventDate, lastEventDate);
+    if(hotelUrl)flightHtml+='<a class="hotel-link" href="'+hotelUrl+'" target="_blank">🏨 Hotels</a>';
+  }
 
   // Cap at 4 events: one entry per unique act, prefer non-broad + popular + spread across dates
   var artistRank=function(e){
@@ -1611,8 +1637,9 @@ function onAnyCityToggle(){S.anyCity=document.getElementById('anyCityCheck').che
 
 async function emailMyMatches(userId, secret) {
   if (!userId && !secret) {
-    // Get current logged-in user ID
-    try { const u = await getUser(); userId = u && u.id ? u.id : null; } catch(e) {}
+    // Get current logged-in user ID (getUser lives in the auth module scope,
+    // exposed here as window._getUser)
+    try { var u = window._getUser ? window._getUser() : null; userId = u && u.id ? u.id : null; } catch(e) {}
   }
   if (!cached || !cached.length) return;
   var windows = cached.map(function(w) {
@@ -1623,6 +1650,7 @@ async function emailMyMatches(userId, secret) {
       score: w.score,
       flightHours: w.fh || null,
       flightUrl: w.flightUrl || (typeof getSkyscannerUrl === 'function' ? getSkyscannerUrl(w.city, firstDate, lastDate) : null),
+      hotelUrl: w.hotelUrl || (typeof getHotelUrl === 'function' ? getHotelUrl(w.city, firstDate, lastDate) : null),
       events: w.events.map(function(e) {
         // Pass e.id so send-digest keys this event by the stable TM/SeatGeek id —
         // the SAME key the scheduled alerts job uses. Without it the manual email
@@ -1632,7 +1660,8 @@ async function emailMyMatches(userId, secret) {
       })
     };
   });
-  var homeCity = S.home ? S.home.name.split(',')[0].trim() : 'Calgary';
+  // S.home is a plain string (was crashing on .name when a home city was set)
+  var homeCity = S.home ? String(S.home).split(',')[0].trim() : 'Calgary';
   fetch('/api/send-digest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

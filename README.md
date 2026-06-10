@@ -54,6 +54,8 @@ SUPABASE_SERVICE_KEY   = Supabase service-role key (server functions only)
 RESEND_API_KEY         = Resend key for the daily alert digest
 ALERT_FROM_EMAIL       = From address for digests (default alerts@doubleheader.app)
 ANTHROPIC_API_KEY      = Claude API key for AI narrative blurbs
+SKYSCANNER_PARTNER_ID  = Skyscanner referral mediaPartnerId (optional — email flight links untagged without it)
+BOOKING_AFFILIATE_AID  = Booking.com affiliate aid (optional — email hotel links untagged without it)
 ```
 
 Affiliate note: Ticketmaster links are tagged client-side with Impact publisher

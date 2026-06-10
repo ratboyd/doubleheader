@@ -131,15 +131,24 @@ function groupIntoWindows(events, cities, homeCity) {
   const homeIATA = IATA[(homeCity || 'Calgary').toLowerCase()] || 'YYC';
 
   const windows = Object.values(byWin).sort((a, b) => b.score - a.score || a.start.localeCompare(b.start));
+  // Affiliate ids — both optional; links render untagged until the programs approve
+  const SKY_PARTNER  = process.env.SKYSCANNER_PARTNER_ID;
+  const BOOKING_AID  = process.env.BOOKING_AFFILIATE_AID;
   for (const w of windows) {
     w.events.sort((a, b) => a.date.localeCompare(b.date));
     const destIATA = IATA[w.city.toLowerCase()];
     const firstDate = w.events[0]?.date;
     const lastDate  = w.events[w.events.length - 1]?.date;
-    if (destIATA && firstDate && lastDate) {
+    if (firstDate && lastDate) {
       const d1 = new Date(new Date(firstDate + 'T12:00:00').getTime() - 86400000).toISOString().split('T')[0];
       const d2 = new Date(new Date(lastDate  + 'T12:00:00').getTime() + 86400000).toISOString().split('T')[0];
-      w.flightUrl = `https://www.skyscanner.net/g/referrals/v1/flights/day-view/${homeIATA}/${destIATA}/?outboundaltsenabled=false&inboundaltsenabled=false&adults=1&currency=CAD&outboundDate=${d1}&inboundDate=${d2}`;
+      if (destIATA) {
+        w.flightUrl = `https://www.skyscanner.net/g/referrals/v1/flights/day-view/${homeIATA}/${destIATA}/?outboundaltsenabled=false&inboundaltsenabled=false&adults=1&currency=CAD&outboundDate=${d1}&inboundDate=${d2}`
+          + (SKY_PARTNER ? `&mediaPartnerId=${encodeURIComponent(SKY_PARTNER)}` : '');
+      }
+      // Hotel link: check in the day before the first event, out the day after the last
+      w.hotelUrl = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(w.city)}&checkin=${d1}&checkout=${d2}&group_adults=1&no_rooms=1`
+        + (BOOKING_AID ? `&aid=${encodeURIComponent(BOOKING_AID)}` : '');
     }
     w.flightHours = FLIGHT_HOURS[w.city.toLowerCase()] || null;
   }
