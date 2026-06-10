@@ -5,69 +5,61 @@
 - Hosting: Netlify (stellular-centaur-f0a42b, auto-deploys from GitHub main)
 - Repo: https://github.com/ratboyd/doubleheader
 - Auth + DB: Supabase (project: govcexcjxbkshsnsrnqf)
-- Separate files: public/narrative.js, public/manifest.json, public/sw.js, netlify/functions/narrative.js
+- Separate files: public/narrative.js, public/manifest.json, public/sw.js, netlify/functions/narrative.js, netlify/functions/send-digest.js, netlify/functions/alerts.js, public/seatgeek.js
 
 ## Already Fixed (do not revisit)
 - Double/Triple/Grand Slam card labels correct
 - Gobbledygook characters on remove buttons and notice banner
-- NY/LA city matching via metro aliases (partial — see Metro Clustering bug below)
+- NY/LA city matching via metro aliases (partial — see Metro Clustering task below)
 - AI narrative blurbs via narrative.js + Netlify function
 - PWA manifest + service worker
 - Mobile nav bar — Clear and Login buttons now visible on mobile
 - By City tab — results now rendering correctly
 - Doubleheader+ stat — now displaying correct count in stats bar
+- City preferences not persisting — fixed silent Supabase upsert failure (missing columns); migration in supabase_schema.sql
+- Houston MLB game count — fixed home-city truncation bug; now returns full slate of upcoming home games
+- Daily emails flagging old games as new — fixed inconsistent dedup key between site and cron paths; seen_events now keyed consistently by event ID
 
 ## Session Instructions
-You are acting as a senior web developer doing a full bug audit. Read this file, read the codebase, identify root causes — do not just patch symptoms. Fix everything listed below completely and commit after each fix. Do not touch anything in the Already Fixed section.
+You are acting as a senior web developer doing a full bug audit and revenue plumbing pass on doubleheader.app. Read this file and the full codebase before touching anything. Fix and implement everything below in order. Commit after each item with a clear message.
 
-## Current Bugs to Fix
+## Current Tasks
 
-### 1. Saved city preferences not persisting across sessions (HIGH PRIORITY)
-When a user adds a city (e.g. Houston) to their preferences and saves, it does not survive logout/login. The city is gone on next session.
-
-Investigate:
-- Is the Supabase write actually firing when Save is clicked? Check network tab / console for errors
-- Is the preferences read-back on auth loading all fields including cities, or only partial fields?
-- Check whether the cities array is being correctly serialized/deserialized from the Supabase preferences column
-- Fix the full round-trip: save to Supabase to reload on login to UI reflects saved state
-
-Test: add Houston, save, log out, log back in — Houston must still be there.
-
-### 2. Houston (and other saved cities) returning too few MLB games (HIGH PRIORITY)
-Houston is only returning 1-2 MLB games (Astros) when there are 80+ home games in the season schedule.
-
-Investigate:
-- Is the date window too narrow? Expand or confirm it covers the full forward window
-- Is Ticketmaster pagination being handled? First page only returns 20 results by default — check if subsequent pages are being fetched
-- Is the city/venue filter correct for Houston? Minute Maid Park should be captured
-- Confirm the Astros attraction ID is correct and not filtering to a subset of games
-
-Fix: Houston MLB should return the full slate of upcoming home games, same as a user would see searching Ticketmaster directly.
-
-### 3. Daily emails flagging old MLB games as new (HIGH PRIORITY)
-The daily email digest marks scheduled MLB games as new even though the full season schedule has been public since March. Games that have been in the Ticketmaster feed for months are being presented as new discoveries.
-
-Investigate:
-- Is there a seen-events table or record in Supabase? If not, build one
-- The novelty flag should compare incoming event IDs against a stored set of previously-surfaced event IDs per user
-- Only flag an event as new if its ID has not been sent to that user before
-- On send, write the event IDs to the seen-events record so they will not be flagged again
-
-Fix: New in the email should mean genuinely new to the user — either just added to Ticketmaster or not previously surfaced in a prior email.
-
-### 4. MLB classification — non-game events leaking into results (HIGH PRIORITY)
-Stadium tours, pregame experiences, and concert events at sports venues are being classified as MLB games and scored accordingly. Live example confirmed: the Bronx/Yankees card shows Classic Tour at Yankee Stadium, Yankee Stadium Premium Pregame Tour, and Pregame Glimpse of Greatness all labeled as MLB games alongside the actual Yankees-Red Sox game — inflating it to a Double when it should be a Single.
+### 1. Wire affiliate tracking into on-site ticket links (HIGH PRIORITY — revenue)
+The send-digest.js email function already appends impactid=7318540 to Ticketmaster URLs, but the result cards on the website link out raw. This is leaking the highest-volume affiliate opportunity — on-site clicks are far more frequent than email clicks.
 
 Fix:
-- When querying Ticketmaster for sports events, filter by classificationName=Sports and the appropriate subGenreName (e.g. Baseball for MLB, Hockey for NHL)
-- Cross-check that the matched attraction is the actual team, not a touring act or stadium experience product
-- If the event title does not contain the team name or a known opponent pattern, flag as low-confidence and exclude from scoring
-- Do not rely solely on venue name to infer sport type
+- Create a single affiliateUrl(url) helper function used everywhere outbound links are generated
+- Apply it to every ticket link on result cards in the UI (Ticketmaster and SeatGeek)
+- Apply it in email paths too if not already consistent
+- Impact publisher ID: 7318540
+- Do not hardcode the affiliate ID in multiple places — one helper, one source of truth
 
-Test against: Blue Jays, Yankees, Dodgers, Cubs. Confirm only actual scheduled games are returned.
+Test: click a ticket link from a result card and confirm the URL contains the Impact affiliate parameter.
+
+### 2. Add SeatGeek affiliate ID (HIGH PRIORITY — revenue)
+seatgeek.js is already coded to append the Impact affiliate suffix but needs the env var wired up.
+
+- The env var name is SEATGEEK_AFFILIATE_ID — confirm this is set in Netlify env (owner can add it once Impact marketplace access is approved)
+- Ensure seatgeek.js reads from this env var and applies it to all outbound SeatGeek links consistently via the same affiliateUrl() helper from task 1
+- Note: Impact marketplace access is pending traffic threshold — placeholder the ID cleanly so it activates the moment the var is set
+
+### 3. Add hotel and flight affiliate links to trip cards
+The email digest already generates Skyscanner flight links per trip. Travel affiliates (Skyscanner, Booking.com, Expedia) pay more per conversion than ticket affiliates and are a natural fit for the trip-planning use case.
+
+- Add a hotel affiliate link alongside the flight link on each trip card, both in the email digest and on the site
+- Use Booking.com or Expedia affiliate links (owner to confirm which program; placeholder cleanly)
+- Keep the UI clean — one flight link, one hotel link per card, not a wall of links
+
+### 4. Instrument outbound click tracking
+Cloudflare Web Analytics is already injected. Before chasing volume, instrument click events so Impact can see real outbound traffic (which gates marketplace approval) and so we can learn which categories convert.
+
+- Fire a custom CF analytics event on every outbound ticket, flight, and hotel click
+- Event should include: type (ticket/flight/hotel), source (ticketmaster/seatgeek/skyscanner/booking), city, and event category (sport/music/comedy)
+- This data is what unlocks affiliate approval and informs everything after
 
 ### 5. Metro geo-clustering — Anaheim and other suburbs leaking out
-Venues in the same metro area are appearing as separate city cards. Confirmed live: Anaheim is showing as its own card (Angels games at Angel Stadium) separate from Los Angeles, despite being inside the LA metro.
+Venues in the same metro area are appearing as separate city cards. Confirmed live: Anaheim is showing as its own card (Angels games at Angel Stadium) separate from Los Angeles.
 
 Fix using lat/long + radius approach. Ensure the following metros resolve to a single display label:
 - Los Angeles — radius ~80km center: 34.0522, -118.2437 (must capture: Pasadena, Anaheim, Long Beach, Inglewood, Carson, Glendale)
@@ -81,71 +73,72 @@ Fix using lat/long + radius approach. Ensure the following metros resolve to a s
 
 Any venue within a defined metro radius displays under the metro label only. Underlying venue data is preserved — display label only changes.
 
-### 6. Date range picker
-Users need control over the search window. Currently fixed forward-looking.
+### 6. MLB classification — non-game events leaking into results
+Stadium tours, pregame experiences, and concert events at sports venues are being classified as MLB games. Example: Bronx/Yankees card shows tour products alongside the actual Yankees-Red Sox game, inflating the score.
 
-Add:
+Fix:
+- Filter Ticketmaster sports queries by classificationName=Sports and appropriate subGenreName (Baseball, Hockey, etc.)
+- Cross-check matched attraction is the actual team, not a stadium experience product
+- Exclude events where title does not contain team name or known opponent pattern
+- Do not rely solely on venue name to infer sport type
+
+Test against: Blue Jays, Yankees, Dodgers, Cubs.
+
+### 7. Date range picker
+Add user control over the search window.
+
 - Three preset buttons: Next 2 Weeks, Next Month, Next 3 Months
-- A dual-handle range slider for custom date selection, with start/end date labels updating live
-- Selected range persists to Supabase user preferences
-- Range gates all Ticketmaster and sports API queries
+- Dual-handle range slider for custom selection, with live date labels
+- Persists to Supabase user preferences
+- Gates all Ticketmaster and sports API queries
 
-Use a lightweight implementation — noUiSlider or simple custom CSS/JS. No heavy dependencies.
+Lightweight implementation only — noUiSlider or custom CSS/JS. No heavy dependencies.
 
-### 7. Comedy as a category
-Add Comedy as a first-class event category alongside Music and Sports.
-
-- Add Comedy toggle to user preference UI, same style as existing toggles
+### 8. Comedy as a category
+- Add Comedy toggle to preference UI, same style as existing toggles
 - Query Ticketmaster using classificationName=Arts & Theatre + subGenreName=Comedy (verify exact string against TM API docs)
-- Comedy events eligible for Doubleheader pairing with sports and music — treat same as Artist events in scoring logic
-- Save Comedy preference to Supabase alongside existing preferences
-- Comedy events get a distinct icon/label on the card (not the same as Music)
+- Comedy events pair with sports and music in scoring logic
+- Save to Supabase preferences
+- Distinct icon/label on card
 
-### 8. AI narrative enrichment with city context
-Current narrative blurbs are generic. Elevate by injecting city-specific context into the Anthropic API prompt.
+### 9. AI narrative enrichment with city context
+- Build cityContext.js seed file with flavour blocks for: Los Angeles, New York, Chicago, Toronto (stubs for others)
+- Each block: venue/neighbourhood personality, cultural notes, 2-3 activity pairings
+- Inject relevant block into Anthropic API system prompt when narrative fires
+- Fall back to generic prompt if no context exists for that metro
+- No external scraping — all content hand-authored
 
-Build a city context seed file (cityContext.js or JSON config) with flavour blocks for key metros. Start with: Los Angeles, New York, Chicago, Toronto. Add others as stubs. Each block includes:
-- Neighbourhood/venue personality notes
-- What the city is known for culturally
-- 2-3 suggested activity pairings relevant to that city
+## Pending Manual Step (owner action required)
+Run the following in the Supabase SQL editor before next deploy (adds columns needed for city/comedy/date preferences to persist):
 
-When narrative function fires, detect metro from event data and inject the relevant city context block into the system prompt. Fall back to current generic prompt if no city context exists for that metro.
-
-Do not scrape external sites. All city context hand-authored in seed file.
+ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS comedy boolean DEFAULT false;
+ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS date_start date;
+ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS date_end date;
 
 ## Data Sources
 - Primary: Ticketmaster API
-- Missing: SeatGeek API (see affiliate section below — HIGH PRIORITY)
-- Missing: Bandsintown or Songkick for better artist coverage (future)
+- Secondary: SeatGeek (seatgeek.js — live, affiliate ID pending)
+- Future: Bandsintown or Songkick for broader artist coverage
 
-## Affiliate Revenue — High Priority
-
-### SeatGeek Affiliate Program
-SeatGeek runs affiliates through Impact.com. Example affiliate URL:
-https://seatgeek.com/candlelight-coldplay-and-imagine-dragons-tickets/fort-worth-texas-fort-worth-botanic-garden-2026-07-23-8-45-pm/concert/18249741
-
-Key insight: SeatGeek covers intimate/independent venue events that Ticketmaster does not carry. Adding SeatGeek as a data source significantly improves coverage.
-
-Action needed:
-1. Add SeatGeek as a second event data source alongside Ticketmaster
-2. Wire affiliate tracking into SeatGeek ticket links once Impact affiliate account is approved
-3. Owner has Impact.com account under boyd.pat@gmail.com — marketplace access pending traffic threshold
-
-### Ticketmaster Affiliate
-Also runs through Impact — same account. Wire tracking once approved.
-
-## Product Feedback (backlog — do not action this sprint)
-- Sorting logic not obvious to users — consider tooltip on the Best overlap first dropdown
-- Data source transparency — users curious where data comes from, consider a small About or FAQ
-- PWA install prompt — consider adding Add to Home Screen nudge for mobile users
-- Focus on user retention before monetization — get traffic first
-- League browsing / casual fan mode — logged for future sprint, do not implement yet
+## Affiliate Revenue Status
+- Impact publisher ID: 7318540 (boyd.pat@gmail.com)
+- Ticketmaster affiliate: Impact — pending marketplace approval
+- SeatGeek affiliate: Impact — pending marketplace approval (SEATGEEK_AFFILIATE_ID env var ready to set)
+- Travel affiliates: Skyscanner links in digest — formal affiliate program not yet enrolled
+- Marketplace approval gated on traffic threshold — click instrumentation (task 4) is what unlocks this
 
 ## Analytics
 - Cloudflare Web Analytics: active, auto-injected via CF proxy (no script tag in HTML)
-- Site token: cfdfdc2ea33b47188b0b07844832e126 (needed for CF API integrations only)
-- Mode: EU visitor data excluded (privacy-friendly, no cookie banner needed)
-- Netlify Analytics: available as $9/mo add-on (not currently enabled)
+- Site token: cfdfdc2ea33b47188b0b07844832e126
+- EU visitor data excluded — no cookie banner needed
+- Netlify Analytics: available as $9/mo add-on (not enabled)
+
+## Product Backlog (do not action this sprint)
+- Sorting tooltip on Best overlap first dropdown
+- About / FAQ page for data source transparency
+- PWA Add to Home Screen nudge
+- League browsing / casual fan mode
+- Paid tier (hold until traffic justifies gating the digest)
 
 ## Owner Context
 Patrick Boyd, Calgary AB. Non-technical founder. Between roles (energy industry).
