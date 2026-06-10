@@ -43,11 +43,22 @@ gh repo create doubleheader --public --push
 - Build settings are auto-detected from `netlify.toml`
 - Click Deploy
 
-### 4. Add your API key
+### 4. Add your API keys
 In Netlify Dashboard → Site → Environment variables → Add:
 ```
-TICKETMASTER_KEY = your_consumer_key_here
+TICKETMASTER_KEY       = Ticketmaster Discovery API consumer key (required)
+SEATGEEK_CLIENT_ID     = SeatGeek API client id (optional — SG results off without it)
+SEATGEEK_AFFILIATE_ID  = Impact.com SeatGeek aid (optional — SG links untagged without it)
+SUPABASE_URL           = Supabase project URL (auth, prefs, email alerts)
+SUPABASE_SERVICE_KEY   = Supabase service-role key (server functions only)
+RESEND_API_KEY         = Resend key for the daily alert digest
+ALERT_FROM_EMAIL       = From address for digests (default alerts@doubleheader.app)
+ANTHROPIC_API_KEY      = Claude API key for AI narrative blurbs
 ```
+
+Affiliate note: Ticketmaster links are tagged client-side with Impact publisher
+id 7318540 (see the AFFIL config in public/index.html, used by affiliateUrl()).
+Skyscanner/Booking ids in that config are null until those programs approve.
 
 Then trigger a redeploy (Deploys → Trigger deploy).
 

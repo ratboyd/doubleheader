@@ -58,11 +58,23 @@ export default async (req, context) => {
     if (!resp.ok) throw new Error(`SG ${resp.status}: ${await resp.text()}`);
     const data = await resp.json();
 
-    // Build affiliate suffix once Impact.com account is approved
+    // Tag event URLs with Impact.com affiliate params once the account is approved
+    // (set SEATGEEK_AFFILIATE_ID in Netlify env). Uses the URL API so links that
+    // already carry a query string (?lat=… etc.) are merged, not corrupted.
     const SG_AID = process.env.SEATGEEK_AFFILIATE_ID;
-    const affSuffix = SG_AID
-      ? `?aid=${SG_AID}&utm_source=impact&utm_medium=affiliate&utm_campaign=doubleheader&irgwc=1`
-      : "";
+    const sgAffiliateUrl = (raw) => {
+      if (!raw || !SG_AID) return raw || "";
+      try {
+        const u = new URL(raw);
+        u.searchParams.set("aid", SG_AID);
+        u.searchParams.set("utm_source", "impact");
+        u.searchParams.set("utm_medium", "affiliate");
+        u.searchParams.set("utm_campaign", "doubleheader");
+        u.searchParams.set("irgwc", "1");
+        u.searchParams.set("afsrc", "1");
+        return u.toString();
+      } catch (e) { return raw; }
+    };
 
     const events = (data.events || []).map(ev => {
       const venue     = ev.venue || {};
@@ -78,7 +90,7 @@ export default async (req, context) => {
         city:       venue.city || "",
         state:      venue.state || "",
         country:    venue.country || "US",
-        url:        ev.url ? ev.url + affSuffix : "",
+        url:        sgAffiliateUrl(ev.url),
         artist:     performer?.name || (artist || team || ""),  // performer name for dedup
         type:       team ? "team" : "artist",
         genre:      ev.taxonomies?.[0]?.name || "",
