@@ -1688,6 +1688,40 @@ function clearAll(){
 
 window.addItem = addItem;
 
+// ── OUTBOUND CLICK TRACKING ───────────────────────────────────────────────────
+// Cloudflare Web Analytics (auto-injected) only counts pageviews — it has no
+// custom event API. So: fire a Zaraz event when Cloudflare Zaraz is enabled on
+// the zone, and ALWAYS send a first-party beacon to /api/track, which stores
+// the click in Supabase (outbound_clicks). That table is the source of truth
+// for affiliate click-through (e.g. proving traffic volume to Impact.com).
+function trackOutbound(kind, url, city){
+  var payload={kind:kind, domain:'', city:city||''};
+  try{ payload.domain=new URL(url).hostname; }catch(e){}
+  try{ if(window.zaraz&&window.zaraz.track) window.zaraz.track('outbound_click', payload); }catch(e){}
+  try{
+    var body=JSON.stringify(payload);
+    if(navigator.sendBeacon){
+      navigator.sendBeacon('/api/track', new Blob([body],{type:'application/json'}));
+    }else{
+      fetch('/api/track',{method:'POST',body:body,keepalive:true});
+    }
+  }catch(e){}
+}
+// One delegated listener covers every card render (grid + all tab views)
+document.addEventListener('click', function(ev){
+  var a=ev.target&&ev.target.closest?ev.target.closest('a.me-link,a.flight-link,a.hotel-link'):null;
+  if(!a)return;
+  var kind=a.classList.contains('me-link')?'ticket':a.classList.contains('flight-link')?'flight':'hotel';
+  var city='';
+  var card=a.closest('.mcard');
+  if(card){
+    var cityEl=card.querySelector('.mcard-city');
+    // First text node only — skips the "Anywhere" pill span
+    if(cityEl&&cityEl.childNodes.length)city=(cityEl.childNodes[0].textContent||'').trim();
+  }
+  trackOutbound(kind, a.href, city);
+});
+
 // Boot
 updateProgress();
 </script>

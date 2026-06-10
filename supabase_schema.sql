@@ -56,3 +56,18 @@ create policy "Service role manages seen_events"
   on public.seen_events for all
   using (true)
   with check (true);
+
+-- Outbound click tracking (ticket / flight / hotel links) — written by the
+-- /api/track Netlify function with the service role. RLS is enabled with NO
+-- public policies on purpose: the service role bypasses RLS, and the anon key
+-- gets nothing. (Do NOT copy the seen_events using(true) pattern above — that
+-- policy applies to every role and exposes the table to the public anon key.)
+create table if not exists public.outbound_clicks (
+  id         uuid primary key default gen_random_uuid(),
+  kind       text not null,   -- ticket | flight | hotel
+  domain     text,            -- destination hostname (ticketmaster.com, booking.com, ...)
+  city       text,            -- trip card city the click came from
+  clicked_at timestamptz default now()
+);
+alter table public.outbound_clicks enable row level security;
+create index if not exists idx_outbound_clicks_at on public.outbound_clicks(clicked_at);
