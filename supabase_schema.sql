@@ -10,9 +10,20 @@ create table if not exists public.user_preferences (
   teams         text[]  default '{}',
   genres        text[]  default '{}',
   leagues       text[]  default '{}',
+  comedy        boolean default false,
+  date_start    date,
+  date_end      date,
   updated_at    timestamptz default now(),
   unique(user_id)
 );
+
+-- Migration for existing databases (the columns above were added after launch).
+-- The frontend's savePreferences() writes comedy/date_start/date_end on every save;
+-- if these columns are absent, PostgREST rejects the WHOLE upsert and NOTHING
+-- persists — not even home_city/travel_cities. Run once; safe to re-run.
+alter table public.user_preferences add column if not exists comedy     boolean default false;
+alter table public.user_preferences add column if not exists date_start date;
+alter table public.user_preferences add column if not exists date_end   date;
 
 create table if not exists public.seen_events (
   id           uuid primary key default gen_random_uuid(),
