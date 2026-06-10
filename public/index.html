@@ -939,12 +939,19 @@ async function fetchGenre(genre, cities, startDate, endDate){
     // Per-city calls expanded with metro aliases: e.g. Dallas user also searches
     // Arlington (Globe Life Field) and Fort Worth (Billy Bob's Texas) so suburban
     // venues aren't missed by the exact-city TM filter.
+    // User's own cities first (home + every saved travel city). A city-scoped TM
+    // query stays under the 100-result cap and returns that city's COMPLETE slate,
+    // so each saved city needs its own call. The global call above only covers the
+    // soonest ~week (MLB is ~15 games/day, filling the cap fast), so any user city
+    // that doesn't get its own per-city call falls back to that week — too few games.
     var cityList=[];
-    cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,4).forEach(function(c){
-      cityList.push(c);
-      (METRO_ALIASES[c]||[]).slice(0,3).forEach(function(a){cityList.push(a);});
-    });
-    cityList=[...new Set(cityList)].slice(0,12);
+    var seenCity={};
+    var addCity=function(c){ if(c){ var k=c.toLowerCase(); if(!seenCity[k]){ seenCity[k]=true; cityList.push(c); } } };
+    if(S.home) addCity(S.home.split(',')[0].trim());
+    cities.forEach(addCity);
+    // Then metro aliases (suburban stadium cities) as remaining budget allows
+    cityList.slice().forEach(function(c){ (METRO_ALIASES[c]||[]).slice(0,3).forEach(addCity); });
+    cityList=cityList.slice(0,18);
     for(var i=0;i<cityList.length;i++){
       var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i])+dateParams);
       pushEvs(await r.json());
@@ -970,12 +977,19 @@ async function fetchLeague(league, cities, startDate, endDate){
     pushEvs(await r0.json());
     // Expand per-city calls with metro aliases so stadium cities outside the
     // user's exact city name are covered (Globe Life Field is in Arlington, not Dallas).
+    // User's own cities first (home + every saved travel city). A city-scoped TM
+    // query stays under the 100-result cap and returns that city's COMPLETE slate,
+    // so each saved city needs its own call. The global call above only covers the
+    // soonest ~week (MLB is ~15 games/day, filling the cap fast), so any user city
+    // that doesn't get its own per-city call falls back to that week — too few games.
     var cityList=[];
-    cities.concat(S.home?[S.home.split(',')[0].trim()]:[]).slice(0,4).forEach(function(c){
-      cityList.push(c);
-      (METRO_ALIASES[c]||[]).slice(0,3).forEach(function(a){cityList.push(a);});
-    });
-    cityList=[...new Set(cityList)].slice(0,12);
+    var seenCity={};
+    var addCity=function(c){ if(c){ var k=c.toLowerCase(); if(!seenCity[k]){ seenCity[k]=true; cityList.push(c); } } };
+    if(S.home) addCity(S.home.split(',')[0].trim());
+    cities.forEach(addCity);
+    // Then metro aliases (suburban stadium cities) as remaining budget allows
+    cityList.slice().forEach(function(c){ (METRO_ALIASES[c]||[]).slice(0,3).forEach(addCity); });
+    cityList=cityList.slice(0,18);
     for(var i=0;i<cityList.length;i++){
       var r=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase())+'&city='+encodeURIComponent(cityList[i])+dateParams);
       pushEvs(await r.json());
