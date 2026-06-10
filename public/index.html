@@ -855,7 +855,7 @@ async function fetchConcerts(artist,startDate,endDate){
     var r=await fetch('/api/concerts?artist='+encodeURIComponent(artist)+(startDate?'&startDate='+startDate:'')+(endDate?'&endDate='+endDate:''));
     var data=await r.json();
     return (data.events||[]).map(function(ev){
-      return {city:ev.city,date:ev.date,name:ev.artist||artist,type:'artist',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0};
+      return {id:ev.id,city:ev.city,date:ev.date,name:ev.artist||artist,type:'artist',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0};
     });
   }catch(e){ return getMockEvents('artist',artist); }
 }
@@ -870,6 +870,7 @@ async function fetchSeatGeek(keyword,type,startDate,endDate){
     var data=await r.json();
     return (data.events||[]).map(function(ev){
       return {
+        id:ev.id,              // stable SeatGeek id ("sg-..."), kept for email dedup
         city:ev.city,date:ev.date,
         name:ev.name,          // full SeatGeek event title
         artist:ev.artist||keyword, // performer name for dedup against TM events
@@ -888,7 +889,7 @@ async function fetchTeamGames(team,startDate,endDate){
     var data=await r.json();
     var today=new Date().toISOString().split('T')[0];
     return (data.events||[]).filter(function(ev){return ev.date>=today;}).map(function(ev){
-      return {city:ev.city,date:ev.date,name:team,type:'team',venue:ev.venue,url:ev.url,note:ev.name,broadMatch:false,weight:1.0};
+      return {id:ev.id,city:ev.city,date:ev.date,name:team,type:'team',venue:ev.venue,url:ev.url,note:ev.name,broadMatch:false,weight:1.0};
     });
   }catch(e){ return getMockEvents('team',team); }
 }
@@ -904,7 +905,7 @@ async function fetchComedy(cities){
   var results=[];
   function pushEvs(data){
     (data.events||[]).forEach(function(ev){
-      results.push({city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'comedy',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0});
+      results.push({id:ev.id,city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'comedy',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0});
     });
   }
   try{
@@ -926,7 +927,7 @@ async function fetchGenre(genre, cities, startDate, endDate){
   var results=[];
   function pushEvs(data){
     (data.events||[]).forEach(function(ev){
-      results.push({city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
+      results.push({id:ev.id,city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
     });
   }
   // Date params ensure the TM 100-event cap covers the user's actual window,
@@ -965,7 +966,7 @@ async function fetchLeague(league, cities, startDate, endDate){
   var results=[];
   function pushEvs(data){
     (data.events||[]).forEach(function(ev){
-      results.push({city:ev.city,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
+      results.push({id:ev.id,city:ev.city,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
     });
   }
   // Date params focus the 100-event TM cap on the user's date window.
@@ -1611,7 +1612,11 @@ async function emailMyMatches(userId, secret) {
       flightHours: w.fh || null,
       flightUrl: w.flightUrl || (typeof getSkyscannerUrl === 'function' ? getSkyscannerUrl(w.city, firstDate, lastDate) : null),
       events: w.events.map(function(e) {
-        return { name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url };
+        // Pass e.id so send-digest keys this event by the stable TM/SeatGeek id —
+        // the SAME key the scheduled alerts job uses. Without it the manual email
+        // path keyed by URL while the cron keyed by id, so the cron re-alerted
+        // events the user had already seen via the site, every day.
+        return { id: e.id, name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url };
       })
     };
   });

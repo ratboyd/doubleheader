@@ -177,13 +177,21 @@ export default async (req) => {
   // may not exist in Supabase. Duplicate-key errors (23505) are expected and ignored.
   if (userId && userId !== 'test') {
     const now = new Date().toISOString();
+    // Dedup within this run: the same event can land in more than one window
+    // (e.g. matched via both a team and a league search), and inserting it twice
+    // creates duplicate seen_events rows for the same key in a single digest.
+    const seenInRun = new Set();
     const eventIds = filteredWindows.flatMap(w => w.events.map(e => ({
       user_id:     userId,
       tm_event_id: stableEventId(e),
       event_name:  e.name,
       event_city:  e.city,
       alerted_at:  now,
-    })));
+    }))).filter(row => {
+      if (seenInRun.has(row.tm_event_id)) return false;
+      seenInRun.add(row.tm_event_id);
+      return true;
+    });
 
     if (eventIds.length) {
       console.log(`[digest] marking ${eventIds.length} events as seen:`, eventIds.map(r => r.tm_event_id));
