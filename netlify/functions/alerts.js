@@ -39,16 +39,42 @@ const FLIGHT_HOURS = {
   'philadelphia': 5,
 };
 
+// Artist and team searches are self-scoping (the keyword is the filter) and the
+// concerts function now paginates, so a full season comes back complete.
 async function fetchEvents(keyword, type) {
-  const param = type === 'team' ? 'team'
-    : type === 'genre'  ? 'genre'
-    : type === 'league' ? 'league'
-    : 'artist';
+  const param = type === 'team' ? 'team' : 'artist';
   try {
     const r = await fetch(`${BASE}/api/concerts?${param}=${encodeURIComponent(keyword)}`);
     const d = await r.json();
     return (d.events || []).map(e => ({ ...e, _keyword: keyword, _type: type }));
   } catch(e) { return []; }
+}
+
+// League and genre searches MUST be city-scoped. The global (no-city) call only
+// returns the soonest ~100 listings across the entire league/genre — for MLB
+// that's ~5 days of games — so as today advances, games in the user's cities
+// scroll into the window and re-alert as "new" every day even though the
+// schedule never changed. A per-city call returns that city's complete slate
+// (well under the cap, and fully paginated), so the visible set is stable day
+// to day. Mirrors the website's fetchLeague/fetchGenre expansion.
+async function fetchCityScoped(keyword, type, cityNames) {
+  const param = type === 'genre' ? 'genre' : 'league';
+  const list = [];
+  const seen = new Set();
+  const add = c => { if (c) { const k = c.toLowerCase(); if (!seen.has(k)) { seen.add(k); list.push(c); } } };
+  for (const name of cityNames) {
+    add(name);
+    for (const a of (METRO_ALIASES[name] || []).slice(0, 3)) add(a);
+  }
+  const out = [];
+  for (const city of list.slice(0, 18)) {
+    try {
+      const r = await fetch(`${BASE}/api/concerts?${param}=${encodeURIComponent(keyword.toLowerCase())}&city=${encodeURIComponent(city)}`);
+      const d = await r.json();
+      (d.events || []).forEach(e => out.push({ ...e, _keyword: keyword, _type: type }));
+    } catch(e) {}
+  }
+  return out;
 }
 
 // Expand each saved city into its metro alias list for matching
@@ -173,13 +199,15 @@ export const handler = async () => {
 
     const cities   = (pref.travel_cities || []).map(name => ({ name }));
     const homeCity = pref.home_city ? pref.home_city.split(',')[0].trim() : 'Calgary';
+    // City names for scoping league/genre searches: home + every saved travel city
+    const cityNames = [homeCity, ...(pref.travel_cities || [])];
 
     // Fetch events for every saved artist, team, genre, and league
     const allEvents = [];
     for (const artist of artists) allEvents.push(...await fetchEvents(artist, 'artist'));
     for (const team   of teams)   allEvents.push(...await fetchEvents(team,   'team'));
-    for (const genre  of genres)  allEvents.push(...await fetchEvents(genre,  'genre'));
-    for (const league of leagues) allEvents.push(...await fetchEvents(league, 'league'));
+    for (const genre  of genres)  allEvents.push(...await fetchCityScoped(genre,  'genre',  cityNames));
+    for (const league of leagues) allEvents.push(...await fetchCityScoped(league, 'league', cityNames));
 
     const windows = groupIntoWindows(allEvents, cities, homeCity);
     if (!windows.length) continue;

@@ -110,14 +110,30 @@ export default async (req, context) => {
 
   if (city && (genre || league || comedy)) params.set("city", city);
 
-  const tmUrl = `https://app.ticketmaster.com/discovery/v2/events.json?${params}`;
-
   try {
-    const resp = await fetch(tmUrl);
-    if (!resp.ok) throw new Error(`TM ${resp.status}`);
-    const data = await resp.json();
+    // Auto-paginate. TM returns 100 events/page sorted by date; a single team's
+    // full season or a global league search runs to many pages. Fetching only
+    // page 0 means we see just the soonest ~100 raw listings, so the daily email
+    // cron sees a SLIDING date-window: as today advances, schedule games that
+    // were beyond the cap scroll into view and get alerted as "new" even though
+    // the schedule never changed. Fetch up to MAX_PAGES, stopping at the last
+    // page or an empty page. (TM hard-caps deep paging at page*size <= 1000.)
+    const MAX_PAGES = 5;
+    const startPage = parseInt(page) || 0;
+    let rawEvents = [];
+    let totalPages = 1;
+    for (let p = startPage; p < startPage + MAX_PAGES && p <= 9; p++) {
+      params.set("page", String(p));
+      const resp = await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`);
+      if (!resp.ok) throw new Error(`TM ${resp.status}`);
+      const data = await resp.json();
+      const pageEvents = data._embedded?.events || [];
+      rawEvents = rawEvents.concat(pageEvents);
+      totalPages = data.page?.totalPages || 1;
+      if (pageEvents.length === 0 || p >= totalPages - 1) break;
+    }
 
-    const events = (data._embedded?.events || []).map(ev => {
+    const events = rawEvents.map(ev => {
       const venue = ev._embedded?.venues?.[0];
       const cls   = ev.classifications?.[0];
       return {
@@ -261,7 +277,7 @@ export default async (req, context) => {
     const dedupedEvents = Array.from(dedupMap.values());
 
     return new Response(JSON.stringify({
-      events: dedupedEvents, total: dedupedEvents.length, pages: data.page?.totalPages || 1,
+      events: dedupedEvents, total: dedupedEvents.length, pages: totalPages,
     }), {
       status: 200,
       headers: { "Content-Type":"application/json","Cache-Control":"public, max-age=3600","Access-Control-Allow-Origin":"*" }
