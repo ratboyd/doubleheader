@@ -62,12 +62,17 @@ async function fetchCityScoped(keyword, type, cityNames) {
   const list = [];
   const seen = new Set();
   const add = c => { if (c) { const k = c.toLowerCase(); if (!seen.has(k)) { seen.add(k); list.push(c); } } };
+  // Each city plus its FULL metro-alias list. Sports venues frequently sit in a
+  // suburb/borough that TM tags as its own city — Yankees -> "Bronx", Mets ->
+  // "Flushing" — so a slice of the aliases would query "New York" and miss the
+  // games entirely (TM returns 0 for city=New York). Home city is first in
+  // cityNames, so its aliases are never the ones dropped by the cap.
   for (const name of cityNames) {
     add(name);
-    for (const a of (METRO_ALIASES[name] || []).slice(0, 3)) add(a);
+    for (const a of (METRO_ALIASES[name] || [])) add(a);
   }
   const out = [];
-  for (const city of list.slice(0, 18)) {
+  for (const city of list.slice(0, 40)) {
     try {
       const r = await fetch(`${BASE}/api/concerts?${param}=${encodeURIComponent(keyword.toLowerCase())}&city=${encodeURIComponent(city)}`);
       const d = await r.json();
