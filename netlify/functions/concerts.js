@@ -226,8 +226,23 @@ export default async (req, context) => {
           'fan experience', 'fan fest', 'fanfest', 'batting practice',
           'classic tour', 'premium experience', 'vip experience',
           'hospitality package', 'club access', 'guided tour',
+          // Experience/package products that recur on their own daily schedule and
+          // get fresh dates added continuously — these were the bulk of the bogus
+          // "new MLB date" email alerts (e.g. "Hands On History At Yankee Stadium",
+          // "Pinstripe Pass * Yankees v. Orioles").
+          'hands on history', 'hands-on history', 'pinstripe pass', ' pass *', '* pass',
+          'clubhouse tour', 'on-field', 'on field experience', 'first pitch',
+          'sing the anthem', 'season membership', 'season ticket', 'ballpark experience',
         ];
         if (NON_GAME.some(w => nameLower.includes(w))) return false;
+      }
+
+      // League searches have no team-name check (below) to lean on, so require a
+      // real matchup token. Actual games read "Home vs. Away" (TM's schedule
+      // convention), occasionally "v." or "@"; stadium tours and experiences have
+      // no matchup, so this positive check catches whatever the denylist misses.
+      if (league) {
+        if (!/ vs\.? | v\. | @ /.test(' ' + nameLower + ' ')) return false;
       }
 
       // Team-specific checks (not needed for broad league searches)
