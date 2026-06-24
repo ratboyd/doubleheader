@@ -209,15 +209,16 @@ export default async (req) => {
       console.log(`[digest] marking ${eventIds.length} events as seen:`, eventIds.map(r => r.tm_event_id));
       const { error: insertErr } = await supabase.from('seen_events').insert(eventIds);
       if (insertErr) {
-        // 23505 = unique_violation — row already exists, that's fine
-        if (insertErr.code !== '23505' && !insertErr.message?.includes('duplicate')) {
-          console.error('[digest] seen_events insert error:', insertErr.code, insertErr.message);
-          // Fallback: insert rows individually so partial failures don't block everything
-          for (const row of eventIds) {
-            const { error: rowErr } = await supabase.from('seen_events').insert(row);
-            if (rowErr && rowErr.code !== '23505' && !rowErr.message?.includes('duplicate')) {
-              console.error('[digest] row insert failed for', row.tm_event_id, ':', rowErr.message);
-            }
+        // A batch insert is ATOMIC: if a unique constraint on (user_id, tm_event_id)
+        // exists, a single already-seen row (23505) aborts the whole batch and drops
+        // the genuinely-new rows with it — so they'd re-alert tomorrow. Always fall
+        // back to row-by-row on ANY batch error so new events are still recorded;
+        // per-row duplicate errors are expected and ignored.
+        console.error('[digest] batch insert failed, retrying row-by-row:', insertErr.code, insertErr.message);
+        for (const row of eventIds) {
+          const { error: rowErr } = await supabase.from('seen_events').insert(row);
+          if (rowErr && rowErr.code !== '23505' && !rowErr.message?.includes('duplicate')) {
+            console.error('[digest] row insert failed for', row.tm_event_id, ':', rowErr.message);
           }
         }
       }
