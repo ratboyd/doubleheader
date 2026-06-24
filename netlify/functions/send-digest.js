@@ -121,18 +121,28 @@ export default async (req) => {
   // For non-test calls: filter to only unseen events
   let filteredWindows = windows;
   if (userId && userId !== 'test') {
-    // .limit(10000) — Supabase/PostgREST default cap is 1000 rows; without this,
-    // any user with >1000 seen events gets a silently truncated set and re-receives
-    // already-alerted events every day.
-    const { data: seen, error: seenErr } = await supabase
-      .from('seen_events')
-      .select('tm_event_id')
-      .eq('user_id', userId)
-      .limit(10000);
-    if (seenErr) console.error('[digest] seen_events read error:', seenErr.message);
-
-    const seenIds = new Set((seen || []).map(r => r.tm_event_id));
-    console.log(`[digest] user ${userId} — ${seenIds.size} seen events loaded`);
+    // Look up seen status ONLY for the events we might alert in this run, in
+    // chunks. A blanket SELECT is silently capped at 1000 rows by PostgREST's
+    // db-max-rows setting — the previous .limit(10000) did NOT override it (a
+    // client limit can only lower the cap, never raise it). So once a user
+    // passed 1000 seen events the dedup set was truncated and the overflow
+    // re-alerted every morning. Scoping the query to the current candidate ids
+    // keeps each request small and completely cap-proof.
+    const candidateIds = [...new Set(
+      windows.flatMap(w => (w.events || []).map(e => stableEventId(e)))
+    )];
+    const seenIds = new Set();
+    for (let i = 0; i < candidateIds.length; i += 150) {
+      const chunk = candidateIds.slice(i, i + 150);
+      const { data: seen, error: seenErr } = await supabase
+        .from('seen_events')
+        .select('tm_event_id')
+        .eq('user_id', userId)
+        .in('tm_event_id', chunk);
+      if (seenErr) { console.error('[digest] seen_events read error:', seenErr.message); continue; }
+      for (const r of (seen || [])) seenIds.add(r.tm_event_id);
+    }
+    console.log(`[digest] user ${userId} — ${candidateIds.length} candidates, ${seenIds.size} already seen`);
 
     const today = new Date().toISOString().split('T')[0];
     filteredWindows = windows.map(w => ({
