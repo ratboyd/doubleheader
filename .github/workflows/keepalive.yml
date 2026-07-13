@@ -1,0 +1,39 @@
+name: Supabase keep-alive
+
+# Supabase free-tier projects auto-pause after ~7 days of inactivity, which would
+# take down the entire doubleheader backend (auth, preferences, the seen_events
+# dedup, and the daily alert email). This workflow makes one authenticated REST
+# request per day, which executes a real query against Postgres and resets the
+# inactivity timer. It does NOT depend on the Netlify alerts cron, so the project
+# stays awake even if that scheduled function ever stops running.
+#
+# The key below is the PUBLISHABLE (anon) key — the same one already shipped to
+# browsers in public/auth.js — so it is safe to commit and needs no GitHub secret.
+#
+# Bonus: if the project is ever paused/unreachable, the request is non-200, the
+# job fails, and GitHub emails the repo owner — so this doubles as an uptime check.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # daily at 06:17 UTC (offset from :00 to dodge GH cron congestion)
+  workflow_dispatch: {}      # allow manual runs from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase REST API
+        env:
+          SUPABASE_URL: https://govcexcjxbkshsnsrnqf.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_jSFOAreU6W7uvlZlYW_HiA_nEpVLQVH
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/seen_events?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Supabase REST status: $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase returned $code (expected 200) — project may be paused or unreachable"
+            exit 1
+          fi
+          echo "Keep-alive ping succeeded."
