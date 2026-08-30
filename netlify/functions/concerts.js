@@ -45,13 +45,7 @@ export default async (req, context) => {
     "electronic": "Electronic",
   };
 
-  const LEAGUE_SUBGENRES = {
-    "nhl":"KZazBEonSMnZfZ7vFnI",
-    "nba":"KZazBEonSMnZfZ7vFlt",
-    "nfl":"KZazBEonSMnZfZ7vFnJ",
-    "mlb":"KZazBEonSMnZfZ7vF1n",
-    // MLS: subGenreId unreliable; classificationName=MLS works better
-  };
+  // NOTE: no subGenreId map here on purpose — see the league branch below.
 
   // Build date window
   const now = new Date();
@@ -97,15 +91,14 @@ export default async (req, context) => {
     // classificationName=Comedy matches at any TM hierarchy level (most reliable)
     params.set("classificationName", "Comedy");
   } else if (league) {
-    const sg = LEAGUE_SUBGENRES[league.toLowerCase()];
-    if (sg) {
-      params.set("classificationName", "Sports");
-      params.set("subGenreId", sg);
-    } else {
-      // classificationName matches across all TM classification levels (segment/genre/subgenre)
-      // e.g. "MLS" matches the MLS subgenre without needing the exact subGenreId
-      params.set("classificationName", league.toUpperCase());
-    }
+    // Use classificationName for EVERY league — never hardcoded subGenreIds.
+    // TM subGenreId values rot silently: the NHL/NBA/NFL ids previously hardcoded
+    // here had started returning ZERO events with no error. Verified live:
+    //   subGenreId      -> mlb 374, nba 0, nfl 0, nhl 0
+    //   classificationName -> mlb 374, nba 455, nfl 166, nhl 329
+    // classificationName matches at segment, genre AND subgenre level, so
+    // "NHL"/"NBA"/"NFL"/"MLB"/"MLS" all resolve without an id that can go stale.
+    params.set("classificationName", league.toUpperCase());
   }
 
   if (city && (genre || league || comedy)) params.set("city", city);
