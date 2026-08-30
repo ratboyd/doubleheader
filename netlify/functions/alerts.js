@@ -94,6 +94,34 @@ function buildCityList(savedCityNames) {
   return list;
 }
 
+// Canonical identity for a game/show, used to collapse the multiple Ticketmaster
+// listings that exist for ONE physical event. TM sells the same game under a
+// plain title and under promo variants ("... : Mickey Mouse Bobblehead",
+// "... : Saturday Night Fireworks"), which previously produced 3-4 near-identical
+// rows for a single game in the digest.
+function baseEventName(name) {
+  return String(name || '')
+    .split(':')[0]                  // drop promo/giveaway suffix
+    .replace(/\([^)]*\)/g, ' ')     // drop "(Preseason)" style parentheticals
+    .replace(/\bvs\.?\b/gi, 'vs')   // normalise "vs." / "vs"
+    .replace(/[^a-z0-9 ]/gi, ' ')   // "St. Louis" == "St Louis"
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+// The "act" a window is scored on. For a game the act is the OPPONENT, so a
+// six-game homestand against two teams counts as 2 acts, not 6 — mirrors the
+// website's scoring so the email tier matches what the site shows.
+function eventAct(ev) {
+  const raw = String(ev.name || '');
+  if (ev.type === 'team' || ev.type === 'league') {
+    const parts = raw.split(/\s+vs\.?\s+/i);
+    return (parts[1] || parts[0] || raw).split(':')[0].trim().toLowerCase();
+  }
+  return raw.split(':')[0].trim().toLowerCase();
+}
+
 function groupIntoWindows(events, cities, homeCity) {
   const cityList = buildCityList(cities.map(c => c.name));
 
@@ -142,13 +170,24 @@ function groupIntoWindows(events, cities, homeCity) {
     }
     const w = byWin[bestKey];
     if (e.date > w.lastDate) w.lastDate = e.date;
-    const nk = (e.artist || e.name || '').toLowerCase() + '|' + e.date;
-    if (!w.nameSeen[nk]) {
-      w.nameSeen[nk] = true;
-      // Flag same-day doubles
-      if (w.events.some(ev => ev.date === e.date)) w.hasSameDay = true;
-      w.events.push({ id: e.id, name: e.name, date: e.date, venue: e.venue || '', city: e.city, url: e.url });
-      w.score += 1; // act-count scoring (same as frontend)
+    // Key on the CANONICAL name + date so promo variants of one game collapse
+    const nk = baseEventName(e.artist && e._type !== 'team' ? e.artist : e.name) + '|' + e.date;
+    const existingIdx = w.nameSeen[nk];
+    if (existingIdx === undefined) {
+      w.nameSeen[nk] = w.events.length;
+      w.events.push({
+        id: e.id, name: e.name, date: e.date,
+        venue: e.venue || '', city: e.city, url: e.url, type: e._type,
+      });
+    } else {
+      // Duplicate listing of the same event — keep the cleanest title (a plain
+      // "Team vs. Team" beats "Team vs. Team: Bobblehead Giveaway").
+      const kept = w.events[existingIdx];
+      if (kept.name.includes(':') && !String(e.name).includes(':')) {
+        kept.name = e.name;
+        kept.url  = e.url;
+        kept.id   = e.id;
+      }
     }
   }
 
@@ -161,7 +200,40 @@ function groupIntoWindows(events, cities, homeCity) {
   };
   const homeIATA = IATA[(homeCity || 'Calgary').toLowerCase()] || 'YYC';
 
-  const windows = Object.values(byWin).sort((a, b) => b.score - a.score || a.start.localeCompare(b.start));
+  const allWindows = Object.values(byWin);
+
+  // Score each window on UNIQUE ACTS across distinct dates, capped at 4 — the
+  // same rule the website uses. Previously score was simply "number of event
+  // listings", so a six-game Tigers homestand scored 6 and was labelled a
+  // "Grand Slam" even though it is one team playing at one venue. Now that
+  // homestand scores 2 (two opponents) and a genuine sports+music overlap
+  // outranks it, which is the whole point of the product.
+  for (const w of allWindows) {
+    const actDate = {};
+    for (const ev of w.events) {
+      const act = eventAct(ev);
+      if (act && !actDate[act]) actDate[act] = ev.date;
+    }
+    const uniqueActs    = Object.keys(actDate).length;
+    const scorableDates = new Set(Object.values(actDate)).size;
+    w.score = Math.min(uniqueActs, scorableDates, 4);
+
+    // Same-day double = two DIFFERENT acts on one date (not one game listed twice)
+    const actsByDate = {};
+    for (const ev of w.events) {
+      (actsByDate[ev.date] = actsByDate[ev.date] || new Set()).add(eventAct(ev));
+    }
+    w.hasSameDay = Object.values(actsByDate).some(s => s.size >= 2);
+
+    // A trip that pairs sport WITH music/comedy is the product's whole premise,
+    // so it outranks a same-score pure homestand.
+    const hasSport = w.events.some(ev => ev.type === 'team' || ev.type === 'league');
+    const hasShow  = w.events.some(ev => ev.type === 'artist' || ev.type === 'genre' || ev.type === 'comedy');
+    w.mixed = hasSport && hasShow ? 1 : 0;
+  }
+
+  const windows = allWindows.sort((a, b) =>
+    (b.mixed - a.mixed) || (b.score - a.score) || a.start.localeCompare(b.start));
   // Affiliate ids — both optional; links render untagged until the programs approve
   const SKY_PARTNER  = process.env.SKYSCANNER_PARTNER_ID;
   const BOOKING_AID  = process.env.BOOKING_AFFILIATE_AID;

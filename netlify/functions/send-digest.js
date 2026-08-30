@@ -43,6 +43,13 @@ function fmtDate(str) {
   return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
 }
 
+// Per-row date (no year — the card header already carries it)
+function fmtDateShort(str) {
+  if (!str) return '';
+  const d = new Date(str + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+
 function buildDigestHtml(windows, homeCity) {
   const cards = windows.map(w => {
     const firstDate = w.events[0]?.date;
@@ -51,7 +58,8 @@ function buildDigestHtml(windows, homeCity) {
     const eventRows = w.events.map(ev => `
       <div style="padding:8px 0;border-bottom:1px solid #1a1a1a;">
         <div style="font-size:14px;font-weight:700;color:#fff;">${ev.name}</div>
-        <div style="font-size:12px;color:#777;margin-top:2px;">${ev.venue || ''}${ev.venue ? ', ' : ''}${ev.city}</div>
+        <div style="font-size:12px;color:#d4a843;margin-top:2px;font-weight:600;">${fmtDateShort(ev.date)}</div>
+        <div style="font-size:12px;color:#777;margin-top:1px;">${ev.venue || ''}${ev.venue ? ', ' : ''}${ev.city}</div>
         <a href="${tmAffiliateUrl(ev.url)}" style="display:inline-block;margin-top:5px;padding:4px 12px;background:#d4a843;color:#000;font-size:11px;font-weight:700;border-radius:3px;text-decoration:none;">Get tickets</a>
       </div>`).join('');
 
