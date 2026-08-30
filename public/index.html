@@ -123,6 +123,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .me-link{font-size:10px;color:var(--gold);text-decoration:none;margin-left:4px;flex-shrink:0;margin-top:3px}
 .me-link:hover{text-decoration:underline}
 .broad-tag{font-size:9px;padding:1px 5px;border-radius:4px;background:var(--rust-lt);color:var(--rust);border:1px solid var(--rust-bd);margin-left:4px;vertical-align:middle;font-family:'DM Mono',monospace;letter-spacing:.02em}
+/* Per-league tints for BROAD league matches, so NHL/NBA/NFL/MLB/MLS read apart
+   from each other instead of all being rust. Specific follows keep their own
+   colours (artists purple, your teams teal-green, comedy lime); genres stay
+   rust. Must sit after .type-broad to win on equal specificity. */
+.mevent.lg-nhl{background:#e6f4fb}.lg-nhl .me-dot{background:#0b7cb5}.lg-nhl .me-name{color:#075985}.lg-nhl .broad-tag{background:#e6f4fb;color:#075985;border-color:#9ad2ee}
+.mevent.lg-nba{background:#ffeede}.lg-nba .me-dot{background:#d2620b}.lg-nba .me-name{color:#9a4708}.lg-nba .broad-tag{background:#ffeede;color:#9a4708;border-color:#f5c391}
+.mevent.lg-nfl{background:#e9edf2}.lg-nfl .me-dot{background:#41546b}.lg-nfl .me-name{color:#2f3e50}.lg-nfl .broad-tag{background:#e9edf2;color:#2f3e50;border-color:#b9c5d2}
+.mevent.lg-mlb{background:#fdeaea}.lg-mlb .me-dot{background:#c0392b}.lg-mlb .me-name{color:#8f2b20}.lg-mlb .broad-tag{background:#fdeaea;color:#8f2b20;border-color:#f0b3ad}
+.mevent.lg-mls{background:#fbe9f7}.lg-mls .me-dot{background:#a3339a}.lg-mls .me-name{color:#7c2676}.lg-mls .broad-tag{background:#fbe9f7;color:#7c2676;border-color:#e9b6e2}
 .mcard-foot{padding:7px 15px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
 .flight-link,.hotel-link{font-size:12px;color:var(--ink);text-decoration:none;font-weight:600;background:var(--gold-lt);border:1px solid var(--gold-bd);padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
 .flight-link:hover,.hotel-link:hover{background:var(--gold);color:var(--ink);border-color:var(--gold)}
@@ -1164,6 +1173,27 @@ function runMatches(){
     return false;
   });
 
+  // A game you follow SPECIFICALLY (Dallas Stars) also arrives from a BROAD
+  // follow (NHL) as a separate listing with a different title — the team fetch
+  // names it "Dallas Stars" while the league fetch names it "Dallas Stars vs.
+  // Chicago Blackhawks" — so window dedup (which keys on name) kept both and
+  // the game was counted twice. Drop the broad copy: the specific follow
+  // already covers it, scores higher (weight 1.0 vs 0.5) and shows in its own
+  // colour. Matched on TM event id, falling back to type+date+venue for cases
+  // where the two paths pick different listings of the same game. Keyed by TYPE
+  // so a concert can never cancel out a game at the same arena on the same day.
+  var specificId={},specificDV={};
+  matched.forEach(function(e){
+    if(e.broadMatch)return;
+    if(e.id)specificId[e.id]=true;
+    specificDV[e.type+'|'+e.date+'|'+(e.venue||'').toLowerCase()]=true;
+  });
+  matched=matched.filter(function(e){
+    if(!e.broadMatch)return true;
+    if(e.id&&specificId[e.id])return false;
+    return !specificDV[e.type+'|'+e.date+'|'+(e.venue||'').toLowerCase()];
+  });
+
   // Group matched events into 3-day trip windows by city.
   // Any day of week is valid - weekday events (playoff games, residencies) are
   // first-class citizens. We slide a 3-day window to find the best combos.
@@ -1473,6 +1503,12 @@ function buildCard(w){
       dLabel=fmt(df)+(fmt(df)!==fmt(dl)?' – '+fmt(dl):'')+(allDates.length>1?' ('+allDates.length+'n)':'');
     }
     var typeClass=e.broadMatch?'type-broad':('type-'+e.type);
+    // broadLabel is "<league> game" for leagues (e.g. "nhl game") and the raw
+    // genre name for genres — only leagues get a per-league tint.
+    if(e.broadMatch&&e.broadLabel){
+      var lgKey=String(e.broadLabel).toLowerCase().replace(/\s*game\s*$/,'').trim();
+      if(['nhl','nba','nfl','mlb','mls'].indexOf(lgKey)>=0)typeClass+=' lg-'+lgKey;
+    }
     var broadTag=e.broadMatch?'<span class="broad-tag">'+e.broadLabel+'</span>':'';
     var ticketLink=e.url?'<a class="me-link" href="'+affiliateUrl(e.url)+'" target="_blank">Tickets →</a>':'';
     var subNote=e.note&&!e.broadMatch?' <span style="font-weight:300;opacity:.6">· '+e.note+'</span>':'';
@@ -1489,8 +1525,13 @@ function renderGrid(wins){
 function renderByCity(wins){
   var cits=[...new Set(wins.map(function(w){return w.city;}))];
   document.getElementById('cityFCGrid').innerHTML=cits.length?cits.map(function(c){
-    var cnt=wins.filter(function(w){return w.city===c;}).reduce(function(s,w){return s+w.primaryHits;},0);
-    return '<div class="fc" onclick="filterByCity(\''+c+'\',this)"><div class="fc-name">'+c+'</div><div class="fc-sub"><strong>'+cnt+'</strong> match'+(cnt!==1?'es':'')+'</div></div>';
+    // Count what clicking this chip actually SHOWS. This used to sum primaryHits,
+    // which counts only specific artist/team follows and ignores broad league and
+    // genre matches — so a city whose matches were all broad (e.g. NHL games in
+    // Phoenix) advertised "0 matches" and then displayed a full set of cards.
+    var cityWins=wins.filter(function(w){return w.city===c;});
+    var evCnt=cityWins.reduce(function(s,w){return s+w.events.length;},0);
+    return '<div class="fc" onclick="filterByCity(\''+c+'\',this)"><div class="fc-name">'+c+'</div><div class="fc-sub"><strong>'+cityWins.length+'</strong> trip'+(cityWins.length!==1?'s':'')+' &middot; '+evCnt+' event'+(evCnt!==1?'s':'')+'</div></div>';
   }).join(''):'<div style="color:var(--ink3);font-size:13px">No matches yet.</div>';
   // Auto-select first city so the tab shows results immediately on open
   if(cits.length){
