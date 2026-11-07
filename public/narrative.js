@@ -58,7 +58,7 @@ var CITY_CTX = {
     pairings: ["Ferry Building market morning before the game", "Mission tacos after the show", "Golden Gate walk between events"]
   },
   "Phoenix": {
-    vibe: "Sun-drenched desert city with a surprisingly deep sports culture, rooftop bars, and warm November nights that don't quit.",
+    vibe: "Sun-drenched desert city with a surprisingly deep sports culture, rooftop bars, and evenings that stay warm long after sunset.",
     pairings: ["Scottsdale Old Town dinner before the game", "desert sunrise hike between shows", "rooftop pool afternoon after the event"]
   },
   "Minneapolis": {
@@ -78,7 +78,7 @@ var CITY_CTX = {
     pairings: ["Granville Island market morning before the game", "Gastown dinner after the show", "Grouse Mountain gondola between events"]
   },
   "Calgary": {
-    vibe: "Cowboy boots and NHL playoffs — Stampede energy all year, Banff a 90-minute drive, and a craft beer scene that won't quit.",
+    vibe: "Cowboy boots and Flames hockey — Stampede energy all year, Banff a 90-minute drive, and a craft beer scene that won't quit.",
     pairings: ["Inglewood neighbourhood brunch before the game", "17th Ave bar crawl after the show", "Banff day trip between events"]
   }
 };
@@ -98,7 +98,13 @@ function getCityCtx(city) {
 function buildNarrativePrompt(card, all, dateStr) {
   var ctx = getCityCtx(card.city);
 
-  var system = "You write punchy, specific travel teaser copy for doubleheader.app — a site that surfaces trips combining sports and music (and comedy) events. Voice: enthusiastic but not cheesy, max 2 sentences, 35 words total. Never use the word 'unforgettable'.";
+  var system = "You write punchy, specific travel teaser copy for doubleheader.app — a site that surfaces trips combining sports and music (and comedy) events. Voice: enthusiastic but not cheesy, max 2 sentences, 35 words total. Never use the word 'unforgettable'."
+    // Accuracy: the model used to invent stakes (e.g. "NHL playoff hockey" for a
+    // November regular-season game). Ground it in the real dates and forbid
+    // claims the event data doesn't support.
+    + " Today's date is " + new Date().toISOString().split('T')[0] + "."
+    + " Describe ONLY the events listed. Do not mention playoffs, postseason, championships, finals, rivalries, records or sellouts unless those words appear in an event name — treat every game as a regular-season game otherwise."
+    + " Output plain text only: no markdown, no headings, no asterisks, no quotation marks around the whole thing.";
   if (ctx) {
     system += " City context for " + card.city + ": " + ctx.vibe;
     if (ctx.pairings && ctx.pairings.length) {
@@ -118,6 +124,18 @@ _s.textContent = ".cn{font-size:11px;color:var(--ink3);line-height:1.5;padding:6
 document.head.appendChild(_s);
 
 // ── FETCH ─────────────────────────────────────────────────────────────────────
+// Belt-and-braces for the "plain text" instruction: the card shows the blurb via
+// textContent, so a stray "# Heading" or "**bold**" would render literally.
+function cleanBlurb(t) {
+  if (!t) return null;
+  t = String(t)
+    .replace(/^\s*#+\s*[^\n]*\n+/, "")   // drop a leading markdown heading line
+    .replace(/[#*_`]+/g, "")             // strip remaining markdown markers
+    .replace(/\s*\n+\s*/g, " ")          // one paragraph
+    .replace(/^["“]|["”]$/g, "")         // unwrap quotes
+    .trim();
+  return t || null;
+}
 function fetchNarrative(card) {
   var ev = card.events || [];
   var a = [], t = [], c = [];
@@ -132,6 +150,8 @@ function fetchNarrative(card) {
   if (c.length) parts.push(c.join(", ") + " (comedy)");
   var all = parts.join(" + ") || "various events";
   var d = card.firstDate || card.start || "";
+  // Give the full trip window, not just the first day
+  if (card.lastDate && card.lastDate !== d) d = d + " to " + card.lastDate;
 
   var nb = buildNarrativePrompt(card, all, d);
 
@@ -140,7 +160,7 @@ function fetchNarrative(card) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: nb.prompt, system: nb.system })
   }).then(function(r) { return r.json(); })
-    .then(function(d) { return d.text || null; })
+    .then(function(d) { return cleanBlurb(d.text); })
     .catch(function() { return null; });
 }
 
