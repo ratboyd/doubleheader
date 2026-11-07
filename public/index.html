@@ -430,21 +430,24 @@ var cached = [];
 var isFetching = false;
 
 // -- METRO ALIASES --
-// Ticketmaster venue cities for major metros; expand user city selections to catch suburb venues
+// Ticketmaster venue cities for major metros; expand user city selections to catch suburb venues.
+// ORDER MATTERS: cities where pro teams actually play come FIRST (Bronx = Yankees,
+// Flushing = Mets, Sunrise = Panthers, Arlington = Rangers/Cowboys...), because
+// broad league/genre searches only query the first few suburbs of each metro.
 var METRO_ALIASES = {
-  "New York":      ["Newark","Wantagh","East Hartford","Uncasville","Elmont","Queens","Flushing","Bronx","East Rutherford","Brooklyn","Uniondale","Hempstead","Garden City"],
-  "Los Angeles":   ["Inglewood","Anaheim","Carson","Roseville","Hollywood","Burbank","Chula Vista","Long Beach","Pasadena","Glendale","Santa Ana","Irvine","Costa Mesa","El Segundo"],
-  "Chicago":       ["Milwaukee","Rosemont","Tinley Park","Hoffman Estates","Waukegan","Skokie"],
-  "San Francisco": ["Oakland","San Jose","Sacramento","Mountain View","Concord","Santa Clara","San Francisco","Berkeley","Pleasanton"],
-  "Washington":    ["Baltimore","Norfolk","Columbia","Bristow","Clarksburg","Arlington","Alexandria","Fairfax","Silver Spring","Landover"],
-  "Boston":        ["Mansfield","Providence","Foxborough","Lowell","Gilford","Fenway","Worcester"],
-  "Dallas":        ["Fort Worth","Arlington","Frisco","Irving","Grand Prairie","Denton","Plano","McKinney","Allen"],
+  "New York":      ["Bronx","Flushing","Elmont","Newark","East Rutherford","Brooklyn","Uniondale","Hempstead","Wantagh","East Hartford","Uncasville","Queens","Garden City"],
+  "Los Angeles":   ["Inglewood","Anaheim","Carson","Pasadena","Long Beach","Hollywood","Burbank","Glendale","Santa Ana","Irvine","Costa Mesa","El Segundo","Roseville","Chula Vista"],
+  "Chicago":       ["Rosemont","Milwaukee","Tinley Park","Hoffman Estates","Waukegan","Skokie"],
+  "San Francisco": ["Santa Clara","San Jose","Oakland","Sacramento","Mountain View","Concord","Berkeley","Pleasanton"],
+  "Washington":    ["Landover","Baltimore","Arlington","Alexandria","Fairfax","Silver Spring","Columbia","Bristow","Clarksburg","Norfolk"],
+  "Boston":        ["Foxborough","Providence","Mansfield","Lowell","Worcester","Gilford","Fenway"],
+  "Dallas":        ["Arlington","Frisco","Fort Worth","Irving","Grand Prairie","Denton","Plano","McKinney","Allen"],
   "Houston":       ["The Woodlands","Sugar Land","Baytown","Pasadena","Katy","Pearland"],
-  "Miami":         ["Fort Lauderdale","West Palm Beach","Sunrise","Coral Gables","Miami Gardens","Homestead"],
+  "Miami":         ["Sunrise","Miami Gardens","Fort Lauderdale","Coral Gables","West Palm Beach","Homestead"],
   "Philadelphia":  ["Camden","Allentown","Bethlehem","Wilmington","Atlantic City","Chester","Voorhees","South Philadelphia"],
   "Atlanta":       ["Duluth","Alpharetta","Stone Mountain","Gainesville","Smyrna","Kennesaw","Marietta"],
   "Seattle":       ["Tacoma","Auburn","Renton","Everett","Redmond","Bellevue","Kent","Shoreline"],
-  "Denver":        ["Morrison","Commerce City","Loveland","Broomfield","Boulder","Westminster","Englewood"],
+  "Denver":        ["Commerce City","Morrison","Broomfield","Boulder","Westminster","Englewood","Loveland"],
   "Phoenix":       ["Glendale","Tempe","Scottsdale","Mesa","Peoria","Chandler","Gilbert","Surprise"],
   "Minneapolis":   ["Saint Paul","Shakopee","Prior Lake","Eagan","Bloomington","Eden Prairie"],
   "Toronto":       ["Mississauga","Brampton","Hamilton","Oshawa","Vaughan","Scarborough","Etobicoke","North York"],
@@ -459,6 +462,75 @@ var METRO_ALIASES = {
   "Calgary":       ["Airdrie","Cochrane","Chestermere","Okotoks","Strathmore"],
   "Edmonton":      ["St. Albert","Sherwood Park","Leduc","Spruce Grove"],
 };
+
+// State/province codes each metro lives in (Ticketmaster's venue stateCode).
+// Several city names exist in more than one metro's list — Vancouver BC is its
+// own metro but Vancouver WA is a Portland suburb; Pasadena is LA *and* Houston;
+// Glendale is LA *and* Phoenix; Arlington is Dallas *and* DC. Without this the
+// last entry won, which labelled every Canucks game "Portland".
+var METRO_STATES = {
+  "New York":["NY","NJ","CT"], "Los Angeles":["CA"], "Chicago":["IL","WI"],
+  "San Francisco":["CA"], "Washington":["DC","VA","MD"], "Boston":["MA","RI","NH"],
+  "Dallas":["TX"], "Houston":["TX"], "Miami":["FL"], "Philadelphia":["PA","NJ","DE"],
+  "Atlanta":["GA"], "Seattle":["WA"], "Denver":["CO"], "Phoenix":["AZ"],
+  "Minneapolis":["MN"], "Toronto":["ON"], "Vancouver":["BC"], "Detroit":["MI"],
+  "Nashville":["TN"], "Portland":["OR","WA"], "Las Vegas":["NV"], "San Diego":["CA"],
+  "Pittsburgh":["PA"], "Cleveland":["OH"], "Calgary":["AB"], "Edmonton":["AB"],
+};
+
+// lowercase city -> metros that claim it, with a metro's OWN name listed first
+// so being a metro always beats being someone else's suburb.
+var CITY_METROS = (function(){
+  var m = {};
+  function add(city, metro, front){
+    var k = city.toLowerCase(); m[k] = m[k] || [];
+    if (m[k].indexOf(metro) < 0) { if (front) m[k].unshift(metro); else m[k].push(metro); }
+  }
+  Object.keys(METRO_ALIASES).forEach(function(metro){ add(metro, metro, true); });
+  Object.keys(METRO_ALIASES).forEach(function(metro){
+    METRO_ALIASES[metro].forEach(function(a){ add(a, metro, false); });
+  });
+  return m;
+})();
+
+// True when the event's state is plausible for this metro (or we can't tell).
+function stateFits(metro, state){
+  var st = String(state || '').toUpperCase(), ok = METRO_STATES[metro];
+  return !st || !ok || ok.indexOf(st) >= 0;
+}
+
+// Which metro is this venue city in? Metro-name-first, state breaks ties.
+// Falls back to the raw city name when it isn't in the table.
+function resolveMetro(city, state){
+  var cands = CITY_METROS[String(city || '').toLowerCase().trim()] || [];
+  for (var i = 0; i < cands.length; i++) if (stateFits(cands[i], state)) return cands[i];
+  return city;
+}
+
+// A user-typed city ("miami, fl") -> its METRO_ALIASES key ("Miami"), or null.
+function metroKey(c){
+  var base = String(c || '').split(',')[0].trim().toLowerCase();
+  var keys = Object.keys(METRO_ALIASES);
+  for (var i = 0; i < keys.length; i++) if (keys[i].toLowerCase() === base) return keys[i];
+  return null;
+}
+
+// Pull the two teams out of a Ticketmaster sports title. TM is inconsistent:
+// "Home vs. Away", "Home vs Away", "Home v Away", "Home v. Away", "Away @ Home",
+// with promo text BEFORE ("Luxury & Suites: …", "HALF PRICE: …",
+// "Preseason Game 2 - …") or AFTER ("…: Bobblehead Night"), plus "(Preseason)".
+// Returns {home, away}, or null when the title isn't a matchup.
+function parseMatchup(title){
+  var segs = String(title || '').replace(/\([^)]*\)/g, ' ').split(/:|\s[-–]\s/);
+  for (var i = 0; i < segs.length; i++) {
+    var m = segs[i].match(/\s+(vs\.?|v\.?|@)\s+/i);
+    if (!m) continue;
+    var a = segs[i].slice(0, m.index).trim(), b = segs[i].slice(m.index + m[0].length).trim();
+    if (!a || !b) continue;
+    return m[1] === '@' ? {home: b, away: a} : {home: a, away: b};
+  }
+  return null;
+}
 
 // ── SCORING WEIGHTS ────────────────────────────────────────────────────────────
 var WEIGHT = { artist:1.0, team:1.0, genre:0.5, league:0.5 };
@@ -878,13 +950,47 @@ function isNetlify(){
 }
 
 // ── API CALLS ─────────────────────────────────────────────────────────────────
+
+// Fetch a list of URLs a few at a time. One-at-a-time was slow once each metro
+// queries its stadium suburbs; all-at-once trips Ticketmaster's ~5 req/s limit.
+// Each request fails independently — previously one bad city inside a shared
+// try/catch silently skipped every city after it.
+async function fetchPooled(urls, limit, onData){
+  var next=0;
+  async function worker(){
+    while(next<urls.length){
+      var u=urls[next++];
+      try{ var r=await fetch(u); onData(await r.json()); }catch(e){}
+    }
+  }
+  var workers=[];
+  for(var k=0;k<Math.min(limit,urls.length);k++)workers.push(worker());
+  await Promise.all(workers);
+}
+
+// Cities to query for a broad (genre/league) search: home + every saved city,
+// then each one's suburbs. Suburb lists are ordered pro-venue first, and travel
+// cities' suburbs go before home's (Calgary's are small towns) so the budget
+// isn't spent before reaching e.g. the Bronx and Flushing.
+function broadSearchCities(cities){
+  var list=[],seen={};
+  function add(c){ c=String(c||'').split(',')[0].trim(); var k=c.toLowerCase(); if(c&&!seen[k]){ seen[k]=true; list.push(c); } }
+  var home=S.home?String(S.home).split(',')[0].trim():'';
+  add(home);
+  cities.forEach(function(c){ add(c&&c.name||c); });
+  var travel=list.filter(function(c){return c!==home;});
+  travel.concat(home?[home]:[]).forEach(function(c){
+    (METRO_ALIASES[metroKey(c)]||[]).slice(0,6).forEach(add);
+  });
+  return list.slice(0,30);
+}
 async function fetchConcerts(artist,startDate,endDate){
   if(!isNetlify()) return getMockEvents('artist', artist);
   try{
     var r=await fetch('/api/concerts?artist='+encodeURIComponent(artist)+(startDate?'&startDate='+startDate:'')+(endDate?'&endDate='+endDate:''));
     var data=await r.json();
     return (data.events||[]).map(function(ev){
-      return {id:ev.id,city:ev.city,date:ev.date,name:ev.artist||artist,type:'artist',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0};
+      return {id:ev.id,city:ev.city,state:ev.state,date:ev.date,name:ev.artist||artist,type:'artist',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0};
     });
   }catch(e){ return getMockEvents('artist',artist); }
 }
@@ -900,7 +1006,7 @@ async function fetchSeatGeek(keyword,type,startDate,endDate){
     return (data.events||[]).map(function(ev){
       return {
         id:ev.id,              // stable SeatGeek id ("sg-..."), kept for email dedup
-        city:ev.city,date:ev.date,
+        city:ev.city,state:ev.state,date:ev.date,
         name:ev.name,          // full SeatGeek event title
         artist:ev.artist||keyword, // performer name for dedup against TM events
         type:type,venue:ev.venue,url:ev.url,
@@ -918,7 +1024,7 @@ async function fetchTeamGames(team,startDate,endDate){
     var data=await r.json();
     var today=new Date().toISOString().split('T')[0];
     return (data.events||[]).filter(function(ev){return ev.date>=today;}).map(function(ev){
-      return {id:ev.id,city:ev.city,date:ev.date,name:team,type:'team',venue:ev.venue,url:ev.url,note:ev.name,broadMatch:false,weight:1.0};
+      return {id:ev.id,city:ev.city,state:ev.state,date:ev.date,name:team,type:'team',venue:ev.venue,url:ev.url,note:ev.name,broadMatch:false,weight:1.0};
     });
   }catch(e){ return getMockEvents('team',team); }
 }
@@ -934,7 +1040,7 @@ async function fetchComedy(cities){
   var results=[];
   function pushEvs(data){
     (data.events||[]).forEach(function(ev){
-      results.push({id:ev.id,city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'comedy',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0});
+      results.push({id:ev.id,city:ev.city,state:ev.state,date:ev.date,name:ev.artist||ev.name,type:'comedy',venue:ev.venue,url:ev.url,broadMatch:false,weight:1.0});
     });
   }
   try{
@@ -956,7 +1062,7 @@ async function fetchGenre(genre, cities, startDate, endDate){
   var results=[];
   function pushEvs(data){
     (data.events||[]).forEach(function(ev){
-      results.push({id:ev.id,city:ev.city,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
+      results.push({id:ev.id,city:ev.city,state:ev.state,date:ev.date,name:ev.artist||ev.name,type:'artist',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:genre,weight:0.5});
     });
   }
   // Date params ensure the TM 100-event cap covers the user's actual window,
@@ -974,18 +1080,11 @@ async function fetchGenre(genre, cities, startDate, endDate){
     // so each saved city needs its own call. The global call above only covers the
     // soonest ~week (MLB is ~15 games/day, filling the cap fast), so any user city
     // that doesn't get its own per-city call falls back to that week — too few games.
-    var cityList=[];
-    var seenCity={};
-    var addCity=function(c){ if(c){ var k=c.toLowerCase(); if(!seenCity[k]){ seenCity[k]=true; cityList.push(c); } } };
-    if(S.home) addCity(S.home.split(',')[0].trim());
-    cities.forEach(addCity);
-    // Then metro aliases (suburban stadium cities) as remaining budget allows
-    cityList.slice().forEach(function(c){ (METRO_ALIASES[c]||[]).slice(0,3).forEach(addCity); });
-    cityList=cityList.slice(0,18);
-    for(var i=0;i<cityList.length;i++){
-      var r=await fetch('/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(cityList[i])+dateParams);
-      pushEvs(await r.json());
-    }
+    // Previously only the first 3 suburbs per metro were queried — for New York
+    // that was Newark/Wantagh/East Hartford, skipping the Bronx and Flushing.
+    await fetchPooled(broadSearchCities(cities).map(function(c){
+      return '/api/concerts?genre='+encodeURIComponent(genre.toLowerCase())+'&city='+encodeURIComponent(c)+dateParams;
+    }),3,pushEvs);
   }catch(e){}
   return results;
 }
@@ -995,7 +1094,7 @@ async function fetchLeague(league, cities, startDate, endDate){
   var results=[];
   function pushEvs(data){
     (data.events||[]).forEach(function(ev){
-      results.push({id:ev.id,city:ev.city,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
+      results.push({id:ev.id,city:ev.city,state:ev.state,date:ev.date,name:ev.name,type:'team',venue:ev.venue,url:ev.url,broadMatch:true,broadLabel:league+' game',weight:0.5});
     });
   }
   // Date params focus the 100-event TM cap on the user's date window.
@@ -1012,18 +1111,11 @@ async function fetchLeague(league, cities, startDate, endDate){
     // so each saved city needs its own call. The global call above only covers the
     // soonest ~week (MLB is ~15 games/day, filling the cap fast), so any user city
     // that doesn't get its own per-city call falls back to that week — too few games.
-    var cityList=[];
-    var seenCity={};
-    var addCity=function(c){ if(c){ var k=c.toLowerCase(); if(!seenCity[k]){ seenCity[k]=true; cityList.push(c); } } };
-    if(S.home) addCity(S.home.split(',')[0].trim());
-    cities.forEach(addCity);
-    // Then metro aliases (suburban stadium cities) as remaining budget allows
-    cityList.slice().forEach(function(c){ (METRO_ALIASES[c]||[]).slice(0,3).forEach(addCity); });
-    cityList=cityList.slice(0,18);
-    for(var i=0;i<cityList.length;i++){
-      var r=await fetch('/api/concerts?league='+encodeURIComponent(league.toLowerCase())+'&city='+encodeURIComponent(cityList[i])+dateParams);
-      pushEvs(await r.json());
-    }
+    // Previously only the first 3 suburbs per metro were queried — for New York
+    // that was Newark/Wantagh/East Hartford, skipping the Bronx and Flushing.
+    await fetchPooled(broadSearchCities(cities).map(function(c){
+      return '/api/concerts?league='+encodeURIComponent(league.toLowerCase())+'&city='+encodeURIComponent(c)+dateParams;
+    }),3,pushEvs);
   }catch(e){}
   return results;
 }
@@ -1142,29 +1234,29 @@ function runMatches(){
     aliasMap[metro.toLowerCase()]=METRO_ALIASES[metro].map(function(a){return a.toLowerCase();});
   });
 
-  // Reverse lookup: any suburb/alias city -> canonical metro display name
-  // Used to normalise window grouping so Anaheim/Inglewood/Bronx all card under their metro
-  var cityToMetro={};
-  Object.keys(METRO_ALIASES).forEach(function(metro){
-    cityToMetro[metro.toLowerCase()]=metro;
-    METRO_ALIASES[metro].forEach(function(alias){cityToMetro[alias.toLowerCase()]=metro;});
-  });
-  function resolveMetro(city){
-    var cl=(city||'').toLowerCase().trim();
-    return cityToMetro[cl]||city;
+  // Metro labelling uses the global, state-aware resolveMetro(city, state).
+  // (The old local version built a city->metro map where the LAST metro to list
+  // a city won, so "Vancouver" — also listed as a Portland suburb — labelled
+  // every Canucks game "Portland".)
+
+  // Does event e belong to the user's city c (lowercase)?
+  function cityMatches(e,c){
+    var cityLower=(e.city||'').toLowerCase();
+    if(!cityLower||!c)return false;            // an empty city used to match EVERY city
+    var key=metroKey(c);
+    // A known metro has known states, so a same-named place elsewhere isn't it:
+    // searching "Vancouver" must not pull in Vancouver, WA (or Portland, ME for "Portland").
+    if(key&&!stateFits(key,e.state))return false;
+    if(cityLower===c||cityLower.includes(c)||c.includes(cityLower))return true;
+    return !!key&&resolveMetro(e.city,e.state)===key;   // suburb of this metro
   }
 
   var matched=LIVE_EVENTS.filter(function(e){
     if(!e.date||e.date<today)return false;
     if(S.dateStart&&e.date<S.dateStart)return false;
     if(S.dateEnd&&e.date>S.dateEnd)return false;
-    var cityLower=e.city.toLowerCase();
-    var inCity=uc.some(function(c){
-      if(cityLower===c||cityLower.includes(c)||c.includes(cityLower))return true;
-      var aliases=aliasMap[c]||[];
-      return aliases.indexOf(cityLower)>=0;
-    });
-    if(homeCityLower) inCity=inCity||(cityLower===homeCityLower||cityLower.includes(homeCityLower));
+    var inCity=uc.some(function(c){return cityMatches(e,c);});
+    if(homeCityLower) inCity=inCity||cityMatches(e,homeCityLower);
     if(!inCity&&!S.anyCity)return false;
     if(e.broadMatch)return true;
     if(e.type==='artist') return ua.some(function(a){return e.name.toLowerCase()===a||e.name.toLowerCase().includes(a)||a.includes(e.name.toLowerCase());});
@@ -1199,7 +1291,7 @@ function runMatches(){
   // first-class citizens. We slide a 3-day window to find the best combos.
   var byWin={};
   matched.sort(function(a,b){
-    var ma=resolveMetro(a.city),mb=resolveMetro(b.city);
+    var ma=resolveMetro(a.city,a.state),mb=resolveMetro(b.city,b.state);
     var cc=ma.localeCompare(mb);
     return cc!==0?cc:a.date.localeCompare(b.date);
   });
@@ -1208,7 +1300,7 @@ function runMatches(){
   // Events within [anchor, anchor+2] days join that window
   matched.forEach(function(e){
     var d=new Date(e.date+'T12:00:00');
-    var metro=resolveMetro(e.city); // normalise suburb → metro label
+    var metro=resolveMetro(e.city,e.state); // normalise suburb → metro label (state breaks ties)
     // Find open window: anchor within last 2 days (so window spans anchor to anchor+2)
     var bestKey=null,bestGap=Infinity;
     for(var k in byWin){
@@ -1297,7 +1389,13 @@ function runMatches(){
     // Two acts on the SAME night = still 1 scoreable night (can only attend one).
     var actDateMap = {};
     w.events.forEach(function(e){
-      var rawAct = (e.artist||e.name||''); var act = (e.type==='team' ? (rawAct.split(/\s+vs\.?\s+/i)[1]||rawAct).split(':')[0].trim() : rawAct).toLowerCase().trim();
+      // For a game the act is the OPPONENT. parseMatchup copes with bare "v",
+      // "@", and promo prefixes — the old split(/vs/)+split(':')[0] turned
+      // "Luxury & Suites: Dolphins v Lions" into an act called "Luxury & Suites",
+      // collapsing every Dolphins home game into one.
+      var rawAct=(e.artist||e.name||'');
+      var mu=e.type==='team'?parseMatchup(rawAct):null;
+      var act=(mu?mu.away:rawAct.split(':')[0]).toLowerCase().trim();
       if (!actDateMap[act]) actDateMap[act] = e.date;
     });
     var uniqueActDates = Object.values(actDateMap);

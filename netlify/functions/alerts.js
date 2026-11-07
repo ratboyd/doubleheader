@@ -99,7 +99,28 @@ function buildCityList(savedCityNames) {
 // plain title and under promo variants ("... : Mickey Mouse Bobblehead",
 // "... : Saturday Night Fireworks"), which previously produced 3-4 near-identical
 // rows for a single game in the digest.
+// Pull the two teams out of a Ticketmaster sports title. TM is inconsistent:
+// "Home vs. Away", "Home vs Away", "Home v Away", "Home v. Away", "Away @ Home",
+// with promo text BEFORE ("Luxury & Suites: …", "HALF PRICE: …",
+// "Preseason Game 2 - …") or AFTER ("…: Bobblehead Night"), plus "(Preseason)".
+// Same logic as parseMatchup() in public/index.html — keep them in sync.
+function parseMatchup(title) {
+  const segs = String(title || '').replace(/\([^)]*\)/g, ' ').split(/:|\s[-–]\s/);
+  for (const seg of segs) {
+    const m = seg.match(/\s+(vs\.?|v\.?|@)\s+/i);
+    if (!m) continue;
+    const a = seg.slice(0, m.index).trim(), b = seg.slice(m.index + m[0].length).trim();
+    if (!a || !b) continue;
+    return m[1] === '@' ? { home: b, away: a } : { home: a, away: b };
+  }
+  return null;
+}
+
 function baseEventName(name) {
+  // Sports titles: key on the matchup itself so "Luxury & Suites: Dolphins v
+  // Lions" and "Miami Dolphins vs. Detroit Lions" on the same date collapse.
+  const mu = parseMatchup(name);
+  if (mu) name = mu.home + ' vs ' + mu.away;
   return String(name || '')
     .split(':')[0]                  // drop promo/giveaway suffix
     .replace(/\([^)]*\)/g, ' ')     // drop "(Preseason)" style parentheticals
@@ -116,8 +137,8 @@ function baseEventName(name) {
 function eventAct(ev) {
   const raw = String(ev.name || '');
   if (ev.type === 'team' || ev.type === 'league') {
-    const parts = raw.split(/\s+vs\.?\s+/i);
-    return (parts[1] || parts[0] || raw).split(':')[0].trim().toLowerCase();
+    const mu = parseMatchup(raw);
+    if (mu) return mu.away.toLowerCase();
   }
   return raw.split(':')[0].trim().toLowerCase();
 }

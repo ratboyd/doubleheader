@@ -117,8 +117,22 @@ export default async (req, context) => {
     let totalPages = 1;
     for (let p = startPage; p < startPage + MAX_PAGES && p <= 9; p++) {
       params.set("page", String(p));
-      const resp = await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`);
-      if (!resp.ok) throw new Error(`TM ${resp.status}`);
+      // TM allows ~5 req/s. A 429 used to come back as an empty result — which
+      // is indistinguishable from "this team has no games" — so back off and
+      // retry a couple of times before giving up.
+      let resp;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        resp = await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`);
+        if (resp.status !== 429) break;
+        await new Promise(r => setTimeout(r, 700 * (attempt + 1)));
+      }
+      if (!resp.ok) {
+        // First page failing is a real error; a later page failing should keep
+        // the pages we already have rather than discarding everything.
+        if (p === startPage) throw new Error(`TM ${resp.status}`);
+        console.warn(`[concerts] page ${p} failed (${resp.status}); returning ${rawEvents.length} events from earlier pages`);
+        break;
+      }
       const data = await resp.json();
       const pageEvents = data._embedded?.events || [];
       rawEvents = rawEvents.concat(pageEvents);
@@ -235,7 +249,12 @@ export default async (req, context) => {
       // convention), occasionally "v." or "@"; stadium tours and experiences have
       // no matchup, so this positive check catches whatever the denylist misses.
       if (league) {
-        if (!/ vs\.? | v\. | @ /.test(' ' + nameLower + ' ')) return false;
+        // Accept "vs", "vs.", "v", "v." and "@". A BARE "v" is common on TM —
+        // "Colorado Avalanche v Detroit Red Wings", "Luxury & Suites: Miami
+        // Dolphins v Detroit Lions" — and an earlier version of this check that
+        // required "v." silently dropped ~half of some teams' home games
+        // (37/66 Avalanche, 37/72 Nuggets, 6/10 Dolphins).
+        if (!/ vs\.? | v\.? | @ /.test(' ' + nameLower + ' ')) return false;
       }
 
       // Team-specific checks (not needed for broad league searches)
@@ -263,7 +282,12 @@ export default async (req, context) => {
     // (exact artist name match) over suite reservations, 2-day bundle tickets, etc.
     const BUNDLE_WORDS = ['suite reservation', '2-day ticket', '2day ticket', 'cannot split',
       'hotel package', 'vip package', 'pre-sale', 'meet & greet', 'meet and greet',
-      'premium seating', 'premium package', 'platinum package', '* premium', 'premium *'];
+      'premium seating', 'premium package', 'platinum package', '* premium', 'premium *',
+      // Alternate listings of a real game. These are NOT filtered out — for some
+      // teams (e.g. Miami Dolphins) they're the only listing TM returns — but when
+      // the plain listing of the same game exists, prefer it so "Get tickets"
+      // doesn't land the user on a luxury-suite or third-party resale page.
+      'luxury & suites', 'luxury suite', 'half price'];
     const dedupMap = new Map();
     for (const ev of filteredEvents) {
       const key = (ev.artist||'').toLowerCase() + '|' + ev.date + '|' + ev.city.toLowerCase();
