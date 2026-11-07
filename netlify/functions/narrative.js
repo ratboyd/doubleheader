@@ -1,4 +1,7 @@
-exports.handler = async function(event) {
+// ESM export: netlify/functions/package.json declares "type": "module", and
+// Netlify's bundler now refuses to deploy a CommonJS (exports.handler) file
+// under it — this one line was failing every deploy since Netlify tightened it.
+export const handler = async function(event) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
   
   try {
