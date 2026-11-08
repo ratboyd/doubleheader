@@ -1,4 +1,13 @@
-name: Supabase keep-alive
+name: Daily health checks
+
+# Two independent jobs, one workflow (so there's only ONE thing to re-enable if
+# GitHub auto-disables scheduled workflows after 60 days without commits):
+#   ping          — Supabase keep-alive (below)
+#   league-health — big-4 league search + Netlify deploy status
+#                   (.github/scripts/health_check.py). Either failing -> GitHub
+#                   emails the repo owner.
+#
+# --- ping ---
 
 # Supabase free-tier projects auto-pause after ~7 days of inactivity, which would
 # take down the entire doubleheader backend (auth, preferences, the seen_events
@@ -37,3 +46,19 @@ jobs:
             exit 1
           fi
           echo "Keep-alive ping succeeded."
+
+  league-health:
+    # Compares each league's broad search against the team search for a few
+    # teams' home games, and checks Netlify's deploy badge. Catches: a league
+    # silently returning zero (stale TM ids), games dropped by the non-game
+    # filter (bare "v" titles), stadium tours leaking in, the TM API/key
+    # failing, and deploys failing while old code keeps serving.
+    # Off-season (no games on either path) is skipped, not failed.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test the decision rule against past incidents
+        run: python3 .github/scripts/health_check.py --selftest
+      - name: Check live site
+        run: python3 .github/scripts/health_check.py
