@@ -95,6 +95,8 @@ def summary(data):
 
 
 CHUNK_DAYS = 90      # Cloudflare rejects a single query wider than 13w2d (~93 days)
+RETENTION_DAYS = 180 # ...and any query reaching back further than 26w2d (~184 days);
+                     # a chunk that starts too early is rejected WHOLE, so clamp to this
 FRESH_DAYS = 60      # within this window Cloudflare is authoritative (overwrite);
                      # older recorded days are kept even if Cloudflare later forgets them
 
@@ -110,7 +112,7 @@ def main(path):
     # handful of queries, it backfills whatever Cloudflare still retains, and it
     # self-corrects late-arriving data.
     ok_chunks, errors = 0, []
-    s = SITE_START
+    s = max(SITE_START, end - dt.timedelta(days=RETENTION_DAYS - 1))
     while s <= end:
         e = min(s + dt.timedelta(days=CHUNK_DAYS - 1), end)
         fetched, err = gql(s, e)
@@ -136,11 +138,10 @@ def main(path):
     if ok_chunks == 0:
         print("::error::every Cloudflare analytics query failed; nothing recorded"); return 1
 
-    # Before the first-ever visit, "zero" just means "not launched / not retained":
-    # trim those leading days rather than claim knowledge we don't have.
-    nonzero = sorted(k for k, (v, p) in data.items() if v or p)
-    if nonzero:
-        data = {k: v for k, v in data.items() if k >= nonzero[0]}
+    # No trimming: Cloudflare explicitly ERRORS on dates outside its retention, so
+    # an empty day inside an accepted range is a genuine zero and stays recorded.
+    # (Caveat for readers: ad blockers often block Cloudflare's beacon, so these
+    # numbers are a floor, not a full count.)
     save(path, data)
 
     text = summary(data)
@@ -148,7 +149,9 @@ def main(path):
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
             f.write("## doubleheader.app traffic (bots excluded)\n\n" + text +
-                    "\nFull history: `traffic.csv` on the `traffic-data` branch.\n")
+                    "\nFull history: `traffic.csv` on the `traffic-data` branch. "
+                    "Ad blockers often block Cloudflare's analytics script, so treat "
+                    "these as a minimum.\n")
     return 0
 
 
