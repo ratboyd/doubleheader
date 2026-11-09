@@ -11,9 +11,11 @@ Cloudflare's GraphQL Analytics API and appends them to traffic.csv (kept on the
   env:   CF_API_TOKEN   — Cloudflare API token with "Account Analytics: Read"
          CF_ACCOUNT_ID  — optional; defaults to the doubleheader account
 
-First run (empty CSV) asks for history back to SITE_START and keeps whatever
-Cloudflare still retains. Later runs re-fetch the last 7 days (late-arriving
-data gets corrected) and add yesterday. Today is never written — it's partial.
+Every run walks from SITE_START to yesterday in <=90-day chunks (Cloudflare
+rejects wider single queries), so whatever history Cloudflare still retains is
+backfilled and late-arriving data is corrected. Days Cloudflare covered with no
+visits are real zeros; days we recorded that have since aged out of Cloudflare's
+retention are kept. Today is never written — it's partial.
 
 Counts exclude bots (same as the dashboard's "Exclude bots: Yes"). The account
 has a single Web Analytics site (doubleheader.app), so account-level totals are
@@ -92,32 +94,53 @@ def summary(data):
             f"| Since {days[0]} | {vl} | {pl} |\n")
 
 
+CHUNK_DAYS = 90      # Cloudflare rejects a single query wider than 13w2d (~93 days)
+FRESH_DAYS = 60      # within this window Cloudflare is authoritative (overwrite);
+                     # older recorded days are kept even if Cloudflare later forgets them
+
+
 def main(path):
     if not TOKEN:
         print("::error::CF_API_TOKEN is not set"); return 1
     data = load(path)
     end = dt.date.today() - dt.timedelta(days=1)            # yesterday (UTC); today is partial
-    start = (dt.date.fromisoformat(max(data)) - dt.timedelta(days=6)) if data else SITE_START
+    fresh_from = end - dt.timedelta(days=FRESH_DAYS - 1)
 
-    fetched, err = gql(start, end)
-    if err and not data:
-        # Long first-run window rejected? Fall back to the 30 days the dashboard shows.
-        print(f"::warning::history back to {start} not available ({err}); retrying last 30 days")
-        start = end - dt.timedelta(days=29)
-        fetched, err = gql(start, end)
-    if err:
-        print(f"::error::Cloudflare analytics query failed: {err}"); return 1
+    # Walk the whole life of the site in <=90-day chunks every run. It's only a
+    # handful of queries, it backfills whatever Cloudflare still retains, and it
+    # self-corrects late-arriving data.
+    ok_chunks, errors = 0, []
+    s = SITE_START
+    while s <= end:
+        e = min(s + dt.timedelta(days=CHUNK_DAYS - 1), end)
+        fetched, err = gql(s, e)
+        if err:
+            errors.append(f"{s}..{e}: {err}")
+        else:
+            ok_chunks += 1
+            d = s
+            while d <= e:
+                k = str(d)
+                if k in fetched:
+                    data[k] = fetched[k]
+                elif d >= fresh_from or k not in data:
+                    # Cloudflare covered this day and saw nobody: a real zero.
+                    data[k] = (0, 0)
+                # else: older day we already recorded, now missing upstream
+                # (aged out of retention) — keep our copy.
+                d += dt.timedelta(days=1)
+        s = e + dt.timedelta(days=1)
 
-    # Days with no visits come back as no row — record them as zero, but only from
-    # the first day Cloudflare actually has data (earlier = unknown, not zero).
-    first = min(fetched) if fetched else None
-    if data:
-        first = str(start)
-    if first:
-        d = dt.date.fromisoformat(first)
-        while d <= end:
-            data[str(d)] = fetched.get(str(d), (0, 0))
-            d += dt.timedelta(days=1)
+    for msg in errors:
+        print(f"::warning::chunk skipped — {msg}")
+    if ok_chunks == 0:
+        print("::error::every Cloudflare analytics query failed; nothing recorded"); return 1
+
+    # Before the first-ever visit, "zero" just means "not launched / not retained":
+    # trim those leading days rather than claim knowledge we don't have.
+    nonzero = sorted(k for k, (v, p) in data.items() if v or p)
+    if nonzero:
+        data = {k: v for k, v in data.items() if k >= nonzero[0]}
     save(path, data)
 
     text = summary(data)
